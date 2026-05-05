@@ -21,7 +21,18 @@ const AI_TAGS = [
   'generative ai',
 ] as const;
 
-const BATCHES = ['winter-2023', 'summer-2023', 'winter-2024', 'summer-2024', 'winter-2025'];
+const BATCHES = [
+  'winter-2023',
+  'summer-2023',
+  'winter-2024',
+  'summer-2024',
+  'winter-2025',
+  'spring-2025',
+  'summer-2025',
+  'fall-2025',
+  'winter-2026',
+  'spring-2026',
+];
 
 interface YCCompany {
   id: number;

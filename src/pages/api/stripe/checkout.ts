@@ -5,7 +5,7 @@ import {
   SPECIALTIES,
   encodeDraftToMetadata,
   getStripe,
-  isAllowedAtsUrl,
+  isValidApplyUrl,
   priceForTier,
   type ListingDraft,
   type Tier,
@@ -102,8 +102,8 @@ export const POST: APIRoute = async ({ request }) => {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(customer_email)) {
     return bad('Billing email looks invalid.');
   }
-  if (!isAllowedAtsUrl(apply_url)) {
-    return bad('Apply URL must be on lever.co, *.greenhouse.io, boards.greenhouse.io, or jobs.ashbyhq.com.');
+  if (!isValidApplyUrl(apply_url)) {
+    return bad('Apply URL must be a valid http(s) link.');
   }
   if (!(LOCATION_POLICIES as readonly string[]).includes(location_policyRaw)) {
     return bad('Pick a valid location policy.');

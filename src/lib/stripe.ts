@@ -14,13 +14,6 @@ export const STANDARD_PRICE_CENTS = 29900; // $299 thereafter
 export const FOUNDING_TIER_LIMIT = 50;
 export const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
-export const ALLOWED_ATS_HOSTS = [
-  'lever.co',
-  'boards.greenhouse.io',
-  'jobs.ashbyhq.com',
-] as const;
-export const ALLOWED_ATS_HOST_SUFFIXES = ['.greenhouse.io'] as const;
-
 export const SPECIALTIES: readonly ListingAISpecialty[] = ['nlp', 'vision', 'robotics', 'infra', 'ops'];
 export const LOCATION_POLICIES: readonly ListingLocationPolicy[] = ['remote', 'hybrid', 'onsite'];
 
@@ -57,18 +50,22 @@ export function getStripe(): Stripe {
   return cachedClient;
 }
 
-/** Validate that an apply URL points at one of the allowed ATS hosts. */
-export function isAllowedAtsUrl(rawUrl: string): boolean {
+/**
+ * Validate that an apply URL is a parseable http(s) URL.
+ *
+ * We intentionally do NOT restrict to a host allow-list — many AI-native startups
+ * (esp. early YC) use Notion, Workday, custom forms, or their own /careers page.
+ * Paid posting ($199) is the spam filter. Reachability/freshness is enforced
+ * separately by a periodic HEAD-check that auto-expires dead links.
+ */
+export function isValidApplyUrl(rawUrl: string): boolean {
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
   } catch {
     return false;
   }
-  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
-  const host = parsed.hostname.toLowerCase();
-  if ((ALLOWED_ATS_HOSTS as readonly string[]).includes(host)) return true;
-  return ALLOWED_ATS_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix));
+  return parsed.protocol === 'https:' || parsed.protocol === 'http:';
 }
 
 const META_CHUNK = 450; // Stripe limit is 500 chars per value; leave headroom.
