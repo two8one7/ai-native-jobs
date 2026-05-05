@@ -15,6 +15,13 @@ export default defineConfig({
   adapter: node({
     mode: 'standalone',
   }),
+  // CSRF origin check disabled: Astro builds request URL as http:// from the upstream
+  // socket while the browser sends Origin: https://, so they never match behind Caddy.
+  // No cookie-auth surface here; state-changing actions go through Stripe webhooks,
+  // which are signature-verified in src/pages/api/stripe/webhook.ts.
+  security: {
+    checkOrigin: false,
+  },
   integrations: [
     sitemap({
       serialize(item) {
