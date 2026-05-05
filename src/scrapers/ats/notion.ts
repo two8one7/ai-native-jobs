@@ -172,10 +172,13 @@ function parseDomFallback(html: string): RawJob[] {
 export async function fetchNotion(slug: string): Promise<RawJob[]> {
   const url = buildUrl(slug);
 
+  // Chrome UA — Googlebot 403s (reverse-DNS validation); Bingbot also 403s on notion.so
+  // workspace pages. Chrome passes both *.notion.site and notion.so. Fixes #13.
   const response = await fetch(url, {
     signal: AbortSignal.timeout(15_000),
     headers: {
-      'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      'user-agent':
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     },
   });

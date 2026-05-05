@@ -66,10 +66,13 @@ const URL_PATTERNS: PatternMatcher[] = [
     slug: (match) => decodeURIComponent(match[1]),
   },
   // notion.so workspace pages: https://www.notion.so/<workspace>/<page-id>
+  // Page-id segment may have an optional title-slug prefix separated by '-', e.g.
+  // "Anthropic-Careers-3b3c91be9aac4d5ca58d2e8e1c0a82c0". The non-capturing group
+  // (?:[^/?#]+-) strips the prefix so match[2] is always the bare UUID. Fixes #12.
   {
     provider: 'notion',
     pattern:
-      /^(?:https?:\/\/)?(?:www\.)?notion\.so\/([^/?#]+)\/([a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})(?:[/?#].*)?$/i,
+      /^(?:https?:\/\/)?(?:www\.)?notion\.so\/([^/?#]+)\/(?:[^/?#]+-)?([a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})(?:[/?#].*)?$/i,
     slug: (match) =>
       `${decodeURIComponent(match[1])}:${decodeURIComponent(match[2])}`,
   },
@@ -134,11 +137,11 @@ const BODY_PATTERNS: PatternMatcher[] = [
     pattern: /notion\.site\/([^/?#"'\s<]+)/i,
     slug: (match) => decodeURIComponent(match[1]),
   },
-  // notion.so body pattern: workspace + page UUID
+  // notion.so body pattern: workspace + page UUID. Same slug-prefix fix as URL_PATTERNS. Fixes #12.
   {
     provider: 'notion',
     pattern:
-      /notion\.so\/([^/?#"'\s<]+)\/([a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i,
+      /notion\.so\/([^/?#"'\s<]+)\/(?:[^/?#"'\s<]+-)?([a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i,
     slug: (match) =>
       `${decodeURIComponent(match[1])}:${decodeURIComponent(match[2])}`,
   },
