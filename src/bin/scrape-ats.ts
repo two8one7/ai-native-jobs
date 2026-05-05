@@ -36,9 +36,10 @@ function logSummary(
     byProvider.smartrecruiters +
     byProvider.workable +
     byProvider.workday +
-    byProvider.notion;
+    byProvider.notion +
+    byProvider.custom;
   console.log(
-    `scraped ${companyCount} companies, ${listingCount} listings, ${providerTotal} by provider {greenhouse: ${byProvider.greenhouse}, lever: ${byProvider.lever}, ashby: ${byProvider.ashby}, smartrecruiters: ${byProvider.smartrecruiters}, workable: ${byProvider.workable}, workday: ${byProvider.workday}, notion: ${byProvider.notion}}`,
+    `scraped ${companyCount} companies, ${listingCount} listings, ${providerTotal} by provider {greenhouse: ${byProvider.greenhouse}, lever: ${byProvider.lever}, ashby: ${byProvider.ashby}, smartrecruiters: ${byProvider.smartrecruiters}, workable: ${byProvider.workable}, workday: ${byProvider.workday}, notion: ${byProvider.notion}, custom: ${byProvider.custom}}`,
   );
 }
 
@@ -62,6 +63,7 @@ async function runAll(db: Database): Promise<void> {
     workable: 0,
     workday: 0,
     notion: 0,
+    custom: 0,
   };
 
   let scrapedCompanies = 0;

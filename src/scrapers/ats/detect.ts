@@ -197,7 +197,12 @@ export async function detectATS(careersUrl: string | null | undefined): Promise<
     return { provider: null, slug: null };
   }
 
-  return detectFromText(body);
+  const detectedFromBody = detectFromText(body);
+  if (detectedFromBody.provider) {
+    return detectedFromBody;
+  }
+
+  return body.trim() ? { provider: 'custom', slug: careersUrl } : { provider: null, slug: null };
 }
 
 export { detectFromText };

@@ -7,7 +7,8 @@ export type ATSProvider =
   | 'smartrecruiters'
   | 'workable'
   | 'workday'
-  | 'notion';
+  | 'notion'
+  | 'custom';
 
 export type DetectResult = {
   provider: ATSProvider | null;
