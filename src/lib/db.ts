@@ -197,22 +197,24 @@ export async function getListingBySlugs(
   companySlug: string,
   roleSlug: string,
 ): Promise<ListingListRow | null> {
-  // Strip the trailing `-<idPrefix>` from the role slug. id is `lst_xxxx...`,
-  // so the prefix contains an underscore but no further hyphens.
+  // Strip the trailing `-<idPrefix>` from the role slug. The prefix is raw
+  // `id.slice(0, 8)` (see lib/jobs.ts getRoleSlug) — for paid listings that's
+  // `lst_xxxx`, for scraped listings it can be `custom:h`, etc. Match exactly
+  // on SUBSTR(id, 1, 8) so SQL LIKE wildcards in the id are not a concern.
   const dashIdx = roleSlug.lastIndexOf('-');
   if (dashIdx <= 0 || dashIdx === roleSlug.length - 1) return null;
   const idPrefix = roleSlug.slice(dashIdx + 1);
-  if (!/^[a-z0-9_]{4,}$/i.test(idPrefix)) return null;
+  if (idPrefix.length < 4 || idPrefix.length > 16) return null;
 
   return withDb(async (db) => {
     const { clause, params } = activeListingsWhere();
     return (db
       .prepare(
         `${LISTING_SELECT}
-         WHERE ${clause} AND c.slug = ? AND l.id LIKE ?
+         WHERE ${clause} AND c.slug = ? AND SUBSTR(l.id, 1, ?) = ?
          LIMIT 1`,
       )
-      .get(...params, companySlug, `${idPrefix}%`) as ListingListRow | null) ?? null;
+      .get(...params, companySlug, idPrefix.length, idPrefix) as ListingListRow | null) ?? null;
   });
 }
 
