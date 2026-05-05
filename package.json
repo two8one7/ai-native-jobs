@@ -1,0 +1,14 @@
+{
+  "name": "ai-native-jobs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "migrate": "bun run src/db/migrate.ts",
+    "db:smoke": "bun run src/db/smoke.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.13",
+    "typescript": "^5.9.2"
+  }
+}
