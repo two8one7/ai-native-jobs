@@ -6,6 +6,8 @@
     "migrate": "bun run src/db/migrate.ts",
     "db:smoke": "bun run src/db/smoke.ts",
     "scrape:yc": "bun run src/bin/scrape-yc.ts",
+    "scrape:ats": "bun run src/bin/scrape-ats.ts",
+    "scrape:ats:all": "bun run src/bin/scrape-ats.ts all",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
