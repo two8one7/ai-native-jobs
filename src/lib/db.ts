@@ -124,7 +124,11 @@ const LISTING_SELECT = `
   INNER JOIN companies c ON c.id = l.company_id
 `;
 
-export async function getRecentListings(filters: ListingFilters, limit = 50): Promise<ListingListRow[]> {
+export async function getRecentListings(
+  filters: ListingFilters,
+  limit = 50,
+  offset = 0,
+): Promise<ListingListRow[]> {
   return withDb(async (db) => {
     const { clause, params } = activeListingsWhere(filters);
     return db
@@ -132,9 +136,24 @@ export async function getRecentListings(filters: ListingFilters, limit = 50): Pr
         `${LISTING_SELECT}
          WHERE ${clause}
          ORDER BY l.posted_at DESC
-         LIMIT ?`
+         LIMIT ? OFFSET ?`
       )
-      .all(...params, limit) as ListingListRow[];
+      .all(...params, limit, offset) as ListingListRow[];
+  });
+}
+
+export async function countActiveListings(filters: ListingFilters): Promise<number> {
+  return withDb(async (db) => {
+    const { clause, params } = activeListingsWhere(filters);
+    const row = db
+      .prepare(
+        `SELECT COUNT(*) AS n
+         FROM listings l
+         INNER JOIN companies c ON c.id = l.company_id
+         WHERE ${clause}`
+      )
+      .get(...params) as { n: number };
+    return row.n;
   });
 }
 

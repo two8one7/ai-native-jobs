@@ -1,13 +1,34 @@
 ---
 import FilterBar from '../components/FilterBar.astro';
 import Base from '../layouts/Base.astro';
-import { getRecentListings } from '../lib/db';
+import { countActiveListings, getRecentListings } from '../lib/db';
 import { formatComp, formatLocation, formatPostedAt, getCompanyPath, getJobPath, readFilters } from '../lib/jobs';
 
 export const prerender = false;
 
+const PAGE_SIZE = 50;
 const filters = readFilters(Astro.url.searchParams);
-const listings = await getRecentListings(filters, 50);
+
+const rawPage = Number.parseInt(Astro.url.searchParams.get('page') ?? '1', 10);
+const total = await countActiveListings(filters);
+const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+const page = Number.isFinite(rawPage) && rawPage >= 1 ? Math.min(rawPage, totalPages) : 1;
+const offset = (page - 1) * PAGE_SIZE;
+const listings = await getRecentListings(filters, PAGE_SIZE, offset);
+
+const buildPageHref = (target: number): string => {
+  const params = new URLSearchParams(Astro.url.searchParams);
+  if (target <= 1) {
+    params.delete('page');
+  } else {
+    params.set('page', String(target));
+  }
+  const qs = params.toString();
+  return qs ? `/?${qs}` : '/';
+};
+
+const rangeStart = total === 0 ? 0 : offset + 1;
+const rangeEnd = Math.min(offset + listings.length, total);
 ---
 
 <Base title="AI Native Jobs" description="Fresh AI-native roles from serious companies.">
@@ -60,5 +81,29 @@ const listings = await getRecentListings(filters, 50);
         </article>
       ))}
     </section>
+    <nav class="mt-6 flex items-center justify-between text-xs text-black/55" aria-label="Pagination">
+      <p>
+        {rangeStart}–{rangeEnd} of {total}
+      </p>
+      <div class="flex items-center gap-3">
+        {page > 1 ? (
+          <a href={buildPageHref(page - 1)} class="border border-black/15 px-2 py-1 text-ink hover:text-accent">
+            ← Prev
+          </a>
+        ) : (
+          <span class="border border-black/10 px-2 py-1 text-black/30">← Prev</span>
+        )}
+        <span>
+          Page {page} of {totalPages}
+        </span>
+        {page < totalPages ? (
+          <a href={buildPageHref(page + 1)} class="border border-black/15 px-2 py-1 text-ink hover:text-accent">
+            Next →
+          </a>
+        ) : (
+          <span class="border border-black/10 px-2 py-1 text-black/30">Next →</span>
+        )}
+      </div>
+    </nav>
   )}
 </Base>
