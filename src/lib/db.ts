@@ -187,3 +187,51 @@ export async function getActiveListingsForCompany(companyId: string): Promise<Li
       .all(...params, companyId) as ListingListRow[];
   });
 }
+
+/**
+ * Look up a single active listing by company slug + role slug. Role slug shape:
+ * `${slugify(title)}-${id.slice(0, 8)}` (see lib/jobs.ts getRoleSlug). The 8-char
+ * id prefix is a near-collision-free key once company is also constrained.
+ */
+export async function getListingBySlugs(
+  companySlug: string,
+  roleSlug: string,
+): Promise<ListingListRow | null> {
+  // Strip the trailing `-<idPrefix>` from the role slug. id is `lst_xxxx...`,
+  // so the prefix contains an underscore but no further hyphens.
+  const dashIdx = roleSlug.lastIndexOf('-');
+  if (dashIdx <= 0 || dashIdx === roleSlug.length - 1) return null;
+  const idPrefix = roleSlug.slice(dashIdx + 1);
+  if (!/^[a-z0-9_]{4,}$/i.test(idPrefix)) return null;
+
+  return withDb(async (db) => {
+    const { clause, params } = activeListingsWhere();
+    return (db
+      .prepare(
+        `${LISTING_SELECT}
+         WHERE ${clause} AND c.slug = ? AND l.id LIKE ?
+         LIMIT 1`,
+      )
+      .get(...params, companySlug, `${idPrefix}%`) as ListingListRow | null) ?? null;
+  });
+}
+
+/**
+ * Look up the listing fulfilled for a Stripe checkout session.
+ * Used for the post-checkout redirect from `/post?ok=1&session_id=...`.
+ */
+export async function getListingByStripeSessionId(
+  stripeSessionId: string,
+): Promise<ListingListRow | null> {
+  return withDb(async (db) => {
+    const { clause, params } = activeListingsWhere();
+    return (db
+      .prepare(
+        `${LISTING_SELECT}
+         INNER JOIN paid_listings p ON p.listing_id = l.id
+         WHERE ${clause} AND p.stripe_session_id = ?
+         LIMIT 1`,
+      )
+      .get(...params, stripeSessionId) as ListingListRow | null) ?? null;
+  });
+}

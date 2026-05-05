@@ -9,9 +9,23 @@ import {
   SPECIALTIES,
   LOCATION_POLICIES,
 } from '../lib/stripe';
-import { withDb } from '../lib/db';
+import { getListingByStripeSessionId, withDb } from '../lib/db';
+import { getJobPath } from '../lib/jobs';
 
 const error = Astro.url.searchParams.get('error');
+const ok = Astro.url.searchParams.get('ok') === '1';
+const sessionId = Astro.url.searchParams.get('session_id');
+
+// Stripe checkout success → look up the freshly-fulfilled listing and redirect
+// to its live page. Webhook fulfilment usually wins the race against the
+// browser redirect, but if it hasn't, fall back to the existing thank-you copy
+// (the user can refresh; their listing will appear once the webhook lands).
+if (ok && sessionId) {
+  const listing = await getListingByStripeSessionId(sessionId);
+  if (listing) {
+    return Astro.redirect(getJobPath(listing), 303);
+  }
+}
 
 let foundingRemaining = FOUNDING_TIER_LIMIT;
 try {

@@ -1,24 +1,18 @@
 ---
+export const prerender = false;
+
 import Base from '../../../layouts/Base.astro';
-import { getAllActiveListings, type ListingListRow } from '../../../lib/db';
-import { formatComp, formatLocation, formatPostedAt, getCompanyPath, getRoleSlug, parseAiStack } from '../../../lib/jobs';
+import { getListingBySlugs } from '../../../lib/db';
+import { formatComp, formatLocation, formatPostedAt, getCompanyPath, parseAiStack } from '../../../lib/jobs';
 import { buildJobPostingJsonLd } from '../../../lib/seo';
 
-export async function getStaticPaths() {
-  const listings = await getAllActiveListings();
+const { company, role } = Astro.params as { company: string; role: string };
+const listing = company && role ? await getListingBySlugs(company, role) : null;
 
-  return listings.map((listing) => ({
-    params: {
-      company: listing.company_slug,
-      role: getRoleSlug(listing),
-    },
-    props: {
-      listing,
-    },
-  }));
+if (!listing) {
+  return new Response('Listing not found', { status: 404 });
 }
 
-const { listing } = Astro.props as { listing: ListingListRow };
 const stack = parseAiStack(listing.ai_stack);
 const jobPostingJsonLd = buildJobPostingJsonLd(listing);
 ---

@@ -158,7 +158,9 @@ export const POST: APIRoute = async ({ request }) => {
       mode: 'payment',
       payment_method_types: ['card'],
       customer_email,
-      success_url: `${SITE_URL}/post?ok=1`,
+      // session_id is interpolated by Stripe; the /post page uses it to look up
+      // the freshly-fulfilled listing and 303 the buyer to the live job page.
+      success_url: `${SITE_URL}/post?ok=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${SITE_URL}/post?error=${encodeURIComponent('Checkout cancelled.')}`,
       line_items: [
         {
