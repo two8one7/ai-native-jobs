@@ -67,6 +67,16 @@ function buildJobLocation(listing: ListingListRow): JobPostingJsonLd['jobLocatio
     return undefined;
   }
 
+  // Drop jobLocation entirely when country is missing. Emitting the literal
+  // string "Unknown" as addressCountry triggers Schema.org / Google Rich
+  // Results validators — better to omit the whole subtree than ship a
+  // sentinel that fails strict validation. Same pattern as baseSalary +
+  // jobLocationType: omit the key when the underlying data isn't present.
+  // (issue: #9)
+  if (!listing.location_country || listing.location_country === 'Unknown') {
+    return undefined;
+  }
+
   return {
     '@type': 'Place',
     address: {
