@@ -38,6 +38,20 @@ Source-only deploy from brain (rsync isn't installed in container — use `tar |
 
 `bun --bun astro build` is required because the droplet runs node 20 and our config-time DB read uses `node:sqlite` (added in node 22). The `--bun` flag forces bun runtime for the astro CLI.
 
+## Careers probe rollout
+
+`companies` now carries ATS enrichment state:
+
+- `ats_provider`
+- `careers_probe_at`
+- `careers_probe_result`
+
+After `bun run migrate`, seed YC companies, then run the enrichment before the ATS scrape if you need to rebuild the pool from scratch:
+
+    AINATIVE_DB_PATH=/mnt/data/ai-native-jobs/ai-native-jobs.db bun run scrape:yc
+    AINATIVE_DB_PATH=/mnt/data/ai-native-jobs/ai-native-jobs.db bun run probe:careers
+    AINATIVE_DB_PATH=/mnt/data/ai-native-jobs/ai-native-jobs.db bun run scrape:ats:all
+
 ## Adding a code-side deploy key (deferred)
 
 Right now deploys are pushed from brain via tar-over-ssh. To switch to droplet-pulls-from-GitHub:

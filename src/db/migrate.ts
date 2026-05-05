@@ -23,6 +23,25 @@ export function migrate(dbPath = process.env.AINATIVE_DB_PATH ?? DEFAULT_DB_PATH
       db.exec('ALTER TABLE companies ADD COLUMN careers_url TEXT');
     }
 
+    const hasAtsProvider = tableInfo.some(col => col.name === 'ats_provider');
+    if (!hasAtsProvider) {
+      db.exec(
+        "ALTER TABLE companies ADD COLUMN ats_provider TEXT CHECK(ats_provider IN ('greenhouse', 'lever', 'ashby', 'smartrecruiters', 'workable', 'workday', 'notion', 'custom'))",
+      );
+    }
+
+    const hasCareersProbeAt = tableInfo.some(col => col.name === 'careers_probe_at');
+    if (!hasCareersProbeAt) {
+      db.exec('ALTER TABLE companies ADD COLUMN careers_probe_at INTEGER');
+    }
+
+    const hasCareersProbeResult = tableInfo.some(col => col.name === 'careers_probe_result');
+    if (!hasCareersProbeResult) {
+      db.exec(
+        "ALTER TABLE companies ADD COLUMN careers_probe_result TEXT CHECK(careers_probe_result IN ('found_ats', 'found_custom', 'no_page', 'blocked', 'error'))",
+      );
+    }
+
     const listingInfo = db.query('PRAGMA table_info(listings)').all() as Array<{ name: string }>;
     const hasUpdatedAt = listingInfo.some(col => col.name === 'updated_at');
     if (!hasUpdatedAt) {

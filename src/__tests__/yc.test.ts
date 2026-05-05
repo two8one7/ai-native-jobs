@@ -50,6 +50,9 @@ describe('YC scraper', () => {
         logo_url TEXT,
         description TEXT,
         careers_url TEXT,
+        ats_provider TEXT,
+        careers_probe_at INTEGER,
+        careers_probe_result TEXT,
         created_at INTEGER NOT NULL
       )
     `);

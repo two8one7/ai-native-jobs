@@ -29,6 +29,10 @@ function runSmoke(): void {
       website: 'https://example.com',
       logo_url: 'https://example.com/logo.png',
       description: 'Testing the migration path.',
+      careers_url: null,
+      ats_provider: null,
+      careers_probe_at: null,
+      careers_probe_result: null,
       created_at: 1_710_000_000_000,
     };
 

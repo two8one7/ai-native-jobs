@@ -6,22 +6,20 @@ import type { ATSProvider } from '../scrapers/ats';
 
 const DEFAULT_DB_PATH = './data/ai-native-jobs.db';
 
-type CompanyWithCareers = Company & { careers_url: string | null };
-
 function getDb(): Database {
   return new Database(resolve(process.env.AINATIVE_DB_PATH ?? DEFAULT_DB_PATH));
 }
 
-function getCompanyBySlug(db: Database, slug: string): CompanyWithCareers | null {
+function getCompanyBySlug(db: Database, slug: string): Company | null {
   return db
     .query('SELECT * FROM companies WHERE slug = ?')
-    .get(slug) as CompanyWithCareers | null;
+    .get(slug) as Company | null;
 }
 
-function getCompaniesWithCareers(db: Database): CompanyWithCareers[] {
+function getCompaniesWithCareers(db: Database): Company[] {
   return db
     .query('SELECT * FROM companies WHERE careers_url IS NOT NULL ORDER BY slug')
-    .all() as CompanyWithCareers[];
+    .all() as Company[];
 }
 
 function logSummary(

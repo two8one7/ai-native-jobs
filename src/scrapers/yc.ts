@@ -73,33 +73,6 @@ function hasAITag(tags: string[]): boolean {
   return false;
 }
 
-async function probeCareersUrl(website: string): Promise<string | null> {
-  if (!website) return null;
-  
-  const baseUrl = website.replace(/\/$/, '');
-  const candidates = [
-    `${baseUrl}/careers`,
-    `${baseUrl}/jobs`,
-    `${baseUrl}/about/careers`,
-  ];
-
-  for (const url of candidates) {
-    try {
-      const response = await fetch(url, {
-        method: 'HEAD',
-        signal: AbortSignal.timeout(1500),
-      });
-      if (response.ok) {
-        return url;
-      }
-    } catch {
-      // timeout or network error, continue
-    }
-  }
-
-  return null;
-}
-
 function mapCompany(company: YCCompany, careersUrl: string | null): ScrapedCompany {
   return {
     id: company.slug,
@@ -131,12 +104,11 @@ export async function scrapeYC(): Promise<ScrapedCompany[]> {
     console.log(`${batch}: ${aiCompanies.length} AI companies out of ${companies.length}`);
 
     for (const company of aiCompanies) {
-      const careersUrl = await probeCareersUrl(company.website);
-      allCompanies.push(mapCompany(company, careersUrl));
+      allCompanies.push(mapCompany(company, null));
     }
   }
 
   return allCompanies;
 }
 
-export { hasAITag, mapCompany, probeCareersUrl };
+export { hasAITag, mapCompany };

@@ -20,11 +20,9 @@ async function run() {
         yc_batch = excluded.yc_batch,
         website = excluded.website,
         logo_url = excluded.logo_url,
-        description = excluded.description,
-        careers_url = excluded.careers_url
+        description = excluded.description
     `);
 
-    let companiesWithCareers = 0;
     for (const company of companies) {
       upsertStmt.run(
         company.id,
@@ -37,15 +35,12 @@ async function run() {
         company.careers_url,
         company.created_at
       );
-      if (company.careers_url) {
-        companiesWithCareers++;
-      }
     }
 
     const totalCount = db.query('SELECT COUNT(*) as count FROM companies').get() as { count: number };
 
     console.log(
-      `scraped ${BATCHES_COUNT} batches, ${companies.length} companies, ${companiesWithCareers} with careers_url`
+      `scraped ${BATCHES_COUNT} batches, ${companies.length} companies`
     );
     console.log(`total companies in db: ${totalCount.count}`);
   } finally {

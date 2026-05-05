@@ -1,3 +1,15 @@
+export type CompanyATSProvider =
+  | 'greenhouse'
+  | 'lever'
+  | 'ashby'
+  | 'smartrecruiters'
+  | 'workable'
+  | 'workday'
+  | 'notion'
+  | 'custom';
+
+export type CareersProbeResult = 'found_ats' | 'found_custom' | 'no_page' | 'blocked' | 'error';
+
 export type Company = {
   id: string;
   slug: string;
@@ -6,6 +18,10 @@ export type Company = {
   website: string | null;
   logo_url: string | null;
   description: string | null;
+  careers_url: string | null;
+  ats_provider: CompanyATSProvider | null;
+  careers_probe_at: number | null;
+  careers_probe_result: CareersProbeResult | null;
   created_at: number;
 };
 

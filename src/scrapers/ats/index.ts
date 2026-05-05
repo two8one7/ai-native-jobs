@@ -1,6 +1,7 @@
 import type { Database } from 'bun:sqlite';
 import type { Company } from '../../db/types';
 import { detectATS } from './detect';
+import { detectFromText } from './detect';
 import { fetchAshby } from './ashby';
 import { fetchGreenhouse } from './greenhouse';
 import { fetchLever } from './lever';
@@ -12,8 +13,6 @@ import { fetchCustom } from './custom';
 import { normalizeRawJob } from './normalize';
 import { upsertListings } from './store';
 import type { ATSProvider, RawJob } from './types';
-
-type CompanyWithCareers = Company & { careers_url: string | null };
 
 const PROVIDER_FETCHERS: Record<ATSProvider, (slug: string) => Promise<RawJob[]>> = {
   greenhouse: fetchGreenhouse,
@@ -32,11 +31,32 @@ export type ScrapeCompanyResult = {
   listings: number;
 };
 
+function resolveStoredProvider(company: Company): { provider: ATSProvider; slug: string } | null {
+  if (!company.careers_url || !company.ats_provider) {
+    return null;
+  }
+
+  if (company.ats_provider === 'custom') {
+    return { provider: 'custom', slug: company.careers_url };
+  }
+
+  const detected = detectFromText(company.careers_url);
+  if (!detected.provider || !detected.slug) {
+    return null;
+  }
+
+  return {
+    provider: company.ats_provider,
+    slug: detected.slug,
+  };
+}
+
 export async function scrapeCompanyListings(
   db: Database,
-  company: CompanyWithCareers,
+  company: Company,
 ): Promise<ScrapeCompanyResult> {
-  const detected = await detectATS(company.careers_url);
+  const stored = resolveStoredProvider(company);
+  const detected = stored ?? (await detectATS(company.careers_url));
   if (!detected.provider || !detected.slug) {
     return { slug: company.slug, provider: null, listings: 0 };
   }
