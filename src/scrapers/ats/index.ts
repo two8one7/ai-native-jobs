@@ -4,6 +4,8 @@ import { detectATS } from './detect';
 import { fetchAshby } from './ashby';
 import { fetchGreenhouse } from './greenhouse';
 import { fetchLever } from './lever';
+import { fetchSmartRecruiters } from './smartrecruiters';
+import { fetchWorkable } from './workable';
 import { normalizeRawJob } from './normalize';
 import { upsertListings } from './store';
 import type { ATSProvider, RawJob } from './types';
@@ -14,6 +16,8 @@ const PROVIDER_FETCHERS: Record<ATSProvider, (slug: string) => Promise<RawJob[]>
   greenhouse: fetchGreenhouse,
   lever: fetchLever,
   ashby: fetchAshby,
+  smartrecruiters: fetchSmartRecruiters,
+  workable: fetchWorkable,
 };
 
 export type ScrapeCompanyResult = {

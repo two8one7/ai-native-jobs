@@ -37,10 +37,52 @@ describe('ATS detection', () => {
     });
   });
 
+  test('detects smartrecruiters jobs URL', () => {
+    expect(detectFromText('https://jobs.smartrecruiters.com/bosch')).toEqual({
+      provider: 'smartrecruiters',
+      slug: 'bosch',
+    });
+  });
+
+  test('detects smartrecruiters careers URL', () => {
+    expect(detectFromText('https://careers.smartrecruiters.com/ibm/jobs')).toEqual({
+      provider: 'smartrecruiters',
+      slug: 'ibm',
+    });
+  });
+
+  test('detects workable apply URL', () => {
+    expect(detectFromText('https://apply.workable.com/superhuman')).toEqual({
+      provider: 'workable',
+      slug: 'superhuman',
+    });
+  });
+
+  test('detects workable subdomain URL', () => {
+    expect(detectFromText('https://huggingface.workable.com')).toEqual({
+      provider: 'workable',
+      slug: 'huggingface',
+    });
+  });
+
   test('detects provider from HTML body', () => {
     expect(detectFromText('<a href="https://jobs.lever.co/scaleai">Jobs</a>')).toEqual({
       provider: 'lever',
       slug: 'scaleai',
+    });
+  });
+
+  test('detects smartrecruiters from HTML body', () => {
+    expect(detectFromText('<a href="https://jobs.smartrecruiters.com/bosch">Careers</a>')).toEqual({
+      provider: 'smartrecruiters',
+      slug: 'bosch',
+    });
+  });
+
+  test('detects workable from HTML body', () => {
+    expect(detectFromText('<a href="https://apply.workable.com/superhuman">Join Us</a>')).toEqual({
+      provider: 'workable',
+      slug: 'superhuman',
     });
   });
 

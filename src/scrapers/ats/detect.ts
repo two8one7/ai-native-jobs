@@ -21,6 +21,22 @@ const URL_PATTERNS: Array<{ provider: DetectResult['provider']; pattern: RegExp 
     provider: 'ashby',
     pattern: /^(?:https?:\/\/)?jobs\.ashbyhq\.com\/([^/?#]+)(?:[/?#].*)?$/i,
   },
+  {
+    provider: 'smartrecruiters',
+    pattern: /^(?:https?:\/\/)?jobs\.smartrecruiters\.com\/([a-z0-9-]+)(?:[/?#].*)?$/i,
+  },
+  {
+    provider: 'smartrecruiters',
+    pattern: /^(?:https?:\/\/)?careers\.smartrecruiters\.com\/([a-z0-9-]+)(?:[/?#].*)?$/i,
+  },
+  {
+    provider: 'workable',
+    pattern: /^(?:https?:\/\/)?apply\.workable\.com\/([a-z0-9-]+)(?:[/?#].*)?$/i,
+  },
+  {
+    provider: 'workable',
+    pattern: /^(?:https?:\/\/)?([a-z0-9-]+)\.workable\.com(?:[/?#].*)?$/i,
+  },
 ];
 
 const BODY_PATTERNS: Array<{ provider: DetectResult['provider']; pattern: RegExp }> = [
@@ -29,6 +45,10 @@ const BODY_PATTERNS: Array<{ provider: DetectResult['provider']; pattern: RegExp
   { provider: 'greenhouse', pattern: /https?:\/\/([a-z0-9-]+)\.greenhouse\.io\b/i },
   { provider: 'lever', pattern: /jobs\.lever\.co\/([a-z0-9-]+)/i },
   { provider: 'ashby', pattern: /jobs\.ashbyhq\.com\/([^"'\\s<]+)/i },
+  { provider: 'smartrecruiters', pattern: /jobs\.smartrecruiters\.com\/([a-z0-9-]+)/i },
+  { provider: 'smartrecruiters', pattern: /careers\.smartrecruiters\.com\/([a-z0-9-]+)/i },
+  { provider: 'workable', pattern: /apply\.workable\.com\/([a-z0-9-]+)/i },
+  { provider: 'workable', pattern: /([a-z0-9-]+)\.workable\.com\b/i },
 ];
 
 function detectFromText(value: string): DetectResult {

@@ -51,6 +51,8 @@ async function runAll(db: Database): Promise<void> {
     greenhouse: 0,
     lever: 0,
     ashby: 0,
+    smartrecruiters: 0,
+    workable: 0,
   };
 
   let scrapedCompanies = 0;
