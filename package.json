@@ -3,9 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
+    "dev": "bun --bun astro dev",
+    "build": "bun --bun astro build",
+    "preview": "bun --bun astro preview",
+    "start": "bun run dist/server/entry.mjs",
     "migrate": "bun run src/db/migrate.ts",
     "db:smoke": "bun run src/db/smoke.ts",
     "scrape:yc": "bun run src/bin/scrape-yc.ts",
