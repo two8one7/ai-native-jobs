@@ -22,6 +22,13 @@ export function migrate(dbPath = process.env.AINATIVE_DB_PATH ?? DEFAULT_DB_PATH
     if (!hasCareersUrl) {
       db.exec('ALTER TABLE companies ADD COLUMN careers_url TEXT');
     }
+
+    const listingInfo = db.query('PRAGMA table_info(listings)').all() as Array<{ name: string }>;
+    const hasUpdatedAt = listingInfo.some(col => col.name === 'updated_at');
+    if (!hasUpdatedAt) {
+      db.exec('ALTER TABLE listings ADD COLUMN updated_at INTEGER');
+      db.exec('UPDATE listings SET updated_at = posted_at WHERE updated_at IS NULL');
+    }
   } finally {
     db.close();
   }

@@ -32,5 +32,6 @@ export type Listing = {
   apply_url: string;
   posted_at: number;
   expires_at: number;
+  updated_at: number;
   status: ListingStatus;
 };

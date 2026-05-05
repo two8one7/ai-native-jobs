@@ -51,6 +51,7 @@ function runSmoke(): void {
       apply_url: 'https://example.com/apply',
       posted_at: 1_710_000_000_000,
       expires_at: 1_712_592_000_000,
+      updated_at: 1_710_000_000_000,
       status: 'active',
     };
 
@@ -74,8 +75,8 @@ function runSmoke(): void {
         id, company_id, title, location_city, location_country, location_is_remote,
         location_policy, comp_min, comp_max, comp_currency, comp_equity, ai_stack,
         ai_specialty, ai_compute_access, description_html, apply_url, posted_at,
-        expires_at, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        expires_at, updated_at, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       listing.id,
       listing.company_id,
@@ -95,6 +96,7 @@ function runSmoke(): void {
       listing.apply_url,
       listing.posted_at,
       listing.expires_at,
+      Date.now(),
       listing.status,
     );
 

@@ -28,8 +28,10 @@ export type ListingListRow = {
   apply_url: string;
   posted_at: number;
   expires_at: number;
+  updated_at: number;
   company_slug: string;
   company_name: string;
+  company_website: string | null;
   company_description: string | null;
 };
 
@@ -113,8 +115,10 @@ const LISTING_SELECT = `
     l.apply_url,
     l.posted_at,
     l.expires_at,
+    l.updated_at,
     c.slug AS company_slug,
     c.name AS company_name,
+    c.website AS company_website,
     c.description AS company_description
   FROM listings l
   INNER JOIN companies c ON c.id = l.company_id

@@ -14,8 +14,8 @@ export function upsertListings(db: Database, listings: AIJobListing[]): number {
       id, company_id, title, location_city, location_country, location_is_remote,
       location_policy, comp_min, comp_max, comp_currency, comp_equity, ai_stack,
       ai_specialty, ai_compute_access, description_html, apply_url, posted_at,
-      expires_at, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      expires_at, updated_at, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       title = excluded.title,
       location_city = excluded.location_city,
@@ -33,6 +33,7 @@ export function upsertListings(db: Database, listings: AIJobListing[]): number {
       apply_url = excluded.apply_url,
       posted_at = excluded.posted_at,
       expires_at = ?,
+      updated_at = ?,
       status = 'active'
   `);
 
@@ -57,8 +58,10 @@ export function upsertListings(db: Database, listings: AIJobListing[]): number {
         listing.apply_url,
         listing.posted_at,
         listing.expires_at,
+        now,
         listing.status,
         now + THIRTY_DAYS_MS,
+        now,
       );
     }
   });

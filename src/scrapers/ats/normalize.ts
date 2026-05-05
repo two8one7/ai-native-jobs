@@ -221,6 +221,7 @@ export function normalizeRawJob(rawJob: RawJob, context: NormalizeContext): AIJo
     apply_url: rawJob.applyUrl,
     posted_at: postedAt,
     expires_at: postedAt + THIRTY_DAYS_MS,
+    updated_at: postedAt,
     status: 'active',
   };
 }

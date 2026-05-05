@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS listings (
   apply_url TEXT NOT NULL,
   posted_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
   status TEXT NOT NULL CHECK(status IN ('active', 'expired', 'filled'))
 );
 
