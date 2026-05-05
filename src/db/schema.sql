@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS companies (
   website TEXT,
   logo_url TEXT,
   description TEXT,
+  careers_url TEXT,
   created_at INTEGER NOT NULL
 );
 

@@ -5,6 +5,7 @@
   "scripts": {
     "migrate": "bun run src/db/migrate.ts",
     "db:smoke": "bun run src/db/smoke.ts",
+    "scrape:yc": "bun run src/bin/scrape-yc.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
