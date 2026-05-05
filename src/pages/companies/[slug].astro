@@ -1,0 +1,57 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getActiveListingsForCompany, getAllCompanies, getCompanyBySlug, type CompanyRow } from '../../lib/db';
+import { formatComp, formatLocation, formatPostedAt, getJobPath } from '../../lib/jobs';
+
+export async function getStaticPaths() {
+  const companies = await getAllCompanies();
+
+  return companies.map((company) => ({
+    params: { slug: company.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+const company = await getCompanyBySlug(slug!) as CompanyRow | null;
+
+if (!company) {
+  throw new Error(`Missing company for slug ${slug}`);
+}
+
+const listings = await getActiveListingsForCompany(company.id);
+---
+
+<Base title={`${company.name} · AI Native Jobs`} description={company.description ?? `Open roles at ${company.name}.`}>
+  <section class="mx-auto max-w-3xl">
+    <a href="/" class="text-xs uppercase tracking-wide text-black/55 hover:text-accent">All jobs</a>
+    <header class="mt-4 border-b border-black/10 pb-6">
+      <h1 class="font-serif text-4xl leading-tight text-ink">{company.name}</h1>
+      <p class="mt-3 max-w-2xl font-serif text-lg leading-7 text-black/75">
+        {company.description ?? 'AI-native company profile.'}
+      </p>
+    </header>
+
+    {listings.length === 0 ? (
+      <p class="mt-8 border border-dashed border-black/15 px-4 py-8 text-sm text-black/65">
+        No active listings. Check back soon.
+      </p>
+    ) : (
+      <div class="mt-8 border-t border-black/10">
+        {listings.map((listing) => (
+          <article class="border-b border-black/10 py-4">
+            <a href={getJobPath(listing)} class="group block">
+              <h2 class="font-serif text-2xl text-ink group-hover:text-accent">{listing.title}</h2>
+              <div class="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-black/55">
+                <span>{formatLocation(listing)}</span>
+                <span>·</span>
+                <span>{formatComp(listing.comp_min, listing.comp_max, listing.comp_currency)}</span>
+                <span>·</span>
+                <time datetime={new Date(listing.posted_at).toISOString()}>{formatPostedAt(listing.posted_at)}</time>
+              </div>
+            </a>
+          </article>
+        ))}
+      </div>
+    )}
+  </section>
+</Base>
