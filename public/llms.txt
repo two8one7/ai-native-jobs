@@ -2,11 +2,11 @@
 
 AI Native Jobs is a curated job board for companies building with AI in the loop. It surfaces roles in infrastructure, research, product, operations, and robotics with filters for specialty and remote work.
 
-- JSON feed: https://ai-native-jobs.com/jobs.json
-- Sitemap index: https://ai-native-jobs.com/sitemap-index.xml
+- JSON feed: https://ai-native-jobs.tommyato.com/jobs.json
+- Sitemap index: https://ai-native-jobs.tommyato.com/sitemap-index.xml
 - Specialty views:
-  - https://ai-native-jobs.com/?specialty=nlp
-  - https://ai-native-jobs.com/?specialty=vision
-  - https://ai-native-jobs.com/?specialty=robotics
-  - https://ai-native-jobs.com/?specialty=infra
-  - https://ai-native-jobs.com/?specialty=ops
+  - https://ai-native-jobs.tommyato.com/?specialty=nlp
+  - https://ai-native-jobs.tommyato.com/?specialty=vision
+  - https://ai-native-jobs.tommyato.com/?specialty=robotics
+  - https://ai-native-jobs.tommyato.com/?specialty=infra
+  - https://ai-native-jobs.tommyato.com/?specialty=ops

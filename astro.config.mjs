@@ -6,7 +6,7 @@ import { getAllActiveListings } from './src/lib/db';
 import { getJobPath } from './src/lib/jobs';
 
 const activeListings = await getAllActiveListings();
-const SITE_URL = 'https://ai-native-jobs.com';
+const SITE_URL = process.env.PUBLIC_SITE_URL ?? 'https://ai-native-jobs.tommyato.com';
 const jobLastmodByUrl = new Map(
   activeListings.map((listing) => [new URL(getJobPath(listing), SITE_URL).href.replace(/\/$/, ''), new Date(listing.updated_at)])
 );
@@ -34,7 +34,7 @@ export default defineConfig({
   ],
   outDir: 'dist',
   output: 'static',
-  site: 'https://ai-native-jobs.com',
+  site: SITE_URL,
   vite: {
     plugins: [tailwindcss()],
   },

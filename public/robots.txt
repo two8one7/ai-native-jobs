@@ -16,4 +16,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://ai-native-jobs.com/sitemap-index.xml
+Sitemap: https://ai-native-jobs.tommyato.com/sitemap-index.xml

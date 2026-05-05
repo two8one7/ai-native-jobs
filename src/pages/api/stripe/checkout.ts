@@ -15,7 +15,7 @@ import type { ListingAISpecialty, ListingLocationPolicy } from '../../../db/type
 
 export const prerender = false;
 
-const SITE_URL = 'https://ai-native-jobs.com';
+const SITE_URL = process.env.PUBLIC_SITE_URL ?? 'https://ai-native-jobs.tommyato.com';
 
 function bad(message: string): Response {
   // Redirect back to the form with the error surfaced; non-JS forms get readable feedback this way.
