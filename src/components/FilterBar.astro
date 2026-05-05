@@ -1,0 +1,65 @@
+---
+import type { ListingFilters } from '../lib/db';
+import { buildFilterHref, MIN_COMP_OPTIONS, SPECIALTIES } from '../lib/jobs';
+
+interface Props {
+  filters: ListingFilters;
+  currentSearch: URLSearchParams;
+}
+
+const { filters, currentSearch } = Astro.props;
+---
+
+<section class="mb-8 border border-black/10 bg-white/60 p-4">
+  <div class="mb-3 flex flex-wrap gap-2 text-xs">
+    {SPECIALTIES.map((specialty) => {
+      const active = filters.specialty === specialty;
+      return (
+        <a
+          href={buildFilterHref(currentSearch, { specialty: active ? null : specialty })}
+          class:list={[
+            'rounded-full border px-3 py-1 tracking-wide uppercase',
+            active ? 'border-ink bg-ink text-paper' : 'border-black/15 text-black/70 hover:border-accent hover:text-accent',
+          ]}
+        >
+          {specialty}
+        </a>
+      );
+    })}
+  </div>
+
+  <form action="/" method="get" class="flex flex-col gap-3 text-sm md:flex-row md:items-center md:justify-between">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+      {filters.specialty && <input type="hidden" name="specialty" value={filters.specialty} />}
+      <label class="inline-flex items-center gap-2">
+        <input
+          type="checkbox"
+          name="remote"
+          value="1"
+          checked={filters.remoteOnly}
+          class="h-4 w-4 rounded border-black/20 accent-black"
+        />
+        <span>Remote only</span>
+      </label>
+
+      <label class="inline-flex items-center gap-2">
+        <span class="text-black/60">Comp floor</span>
+        <select name="min_comp" class="border border-black/15 bg-transparent px-2 py-1">
+          <option value="">Any</option>
+          {MIN_COMP_OPTIONS.map((value) => (
+            <option value={value} selected={filters.minComp === value}>
+              {value >= 250000 ? '$250,000+' : `$${value.toLocaleString('en-US')}`}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button type="submit" class="border border-ink px-3 py-1.5 text-xs uppercase tracking-wide hover:bg-ink hover:text-paper">
+        Apply
+      </button>
+      <a href="/" class="text-black/60 hover:text-accent">Clear all</a>
+    </div>
+  </form>
+</section>

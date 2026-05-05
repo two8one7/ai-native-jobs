@@ -1,11 +1,13 @@
 ---
+import FilterBar from '../components/FilterBar.astro';
 import Base from '../layouts/Base.astro';
 import { getRecentListings } from '../lib/db';
-import { formatComp, formatLocation, formatPostedAt, getCompanyPath, getJobPath } from '../lib/jobs';
+import { formatComp, formatLocation, formatPostedAt, getCompanyPath, getJobPath, readFilters } from '../lib/jobs';
 
 export const prerender = false;
 
-const listings = await getRecentListings({ specialty: null, remoteOnly: false, minComp: null }, 50);
+const filters = readFilters(Astro.url.searchParams);
+const listings = await getRecentListings(filters, 50);
 ---
 
 <Base title="AI Native Jobs" description="Fresh AI-native roles from serious companies.">
@@ -16,10 +18,12 @@ const listings = await getRecentListings({ specialty: null, remoteOnly: false, m
     </p>
   </section>
 
+  <FilterBar filters={filters} currentSearch={Astro.url.searchParams} />
+
   {listings.length === 0 ? (
     <section class="border border-dashed border-black/15 px-4 py-8 text-sm text-black/65">
       <p>
-        No listings yet. Check back soon.
+        No listings match. <a href="/" class="text-accent underline underline-offset-2">Clear filters</a>
       </p>
     </section>
   ) : (
