@@ -1,0 +1,46 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = 'Minimal AI-native job listings for operators, researchers, and builders.',
+} = Astro.props;
+const year = new Date().getFullYear();
+---
+
+<!doctype html>
+<html lang="en" class="bg-paper text-ink">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="font-mono antialiased">
+    <div class="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-6 sm:px-6">
+      <header class="mb-8 flex items-center justify-between gap-4 border-b border-black/10 pb-4 text-sm">
+        <a href="/" class="font-semibold tracking-tight text-ink hover:text-accent">ai-native-jobs</a>
+        <nav class="flex items-center gap-4">
+          <a href="/post-a-job" class="text-black/65 hover:text-accent">Post a job</a>
+        </nav>
+      </header>
+      <main class="flex-1">
+        <slot />
+      </main>
+      <footer class="mt-12 border-t border-black/10 pt-4 text-xs text-black/55">
+        <p>{year} Built by tommyato</p>
+      </footer>
+    </div>
+  </body>
+</html>
