@@ -1,70 +1,135 @@
 import type { DetectResult } from './types';
 
-const URL_PATTERNS: Array<{ provider: DetectResult['provider']; pattern: RegExp }> = [
+type PatternMatcher = {
+  provider: DetectResult['provider'];
+  pattern: RegExp;
+  slug: (match: RegExpMatchArray) => string;
+};
+
+const URL_PATTERNS: PatternMatcher[] = [
   {
     provider: 'greenhouse',
     pattern: /^(?:https?:\/\/)?boards\.greenhouse\.io\/([a-z0-9-]+)(?:[/?#].*)?$/i,
+    slug: (match) => decodeURIComponent(match[1]),
   },
   {
     provider: 'greenhouse',
     pattern: /^(?:https?:\/\/)?job-boards\.greenhouse\.io\/([a-z0-9-]+)(?:[/?#].*)?$/i,
+    slug: (match) => decodeURIComponent(match[1]),
   },
   {
     provider: 'greenhouse',
     pattern: /^(?:https?:\/\/)?([a-z0-9-]+)\.greenhouse\.io(?:[/?#].*)?$/i,
+    slug: (match) => decodeURIComponent(match[1]),
   },
   {
     provider: 'lever',
     pattern: /^(?:https?:\/\/)?jobs\.lever\.co\/([a-z0-9-]+)(?:[/?#].*)?$/i,
+    slug: (match) => decodeURIComponent(match[1]),
   },
   {
     provider: 'ashby',
     pattern: /^(?:https?:\/\/)?jobs\.ashbyhq\.com\/([^/?#]+)(?:[/?#].*)?$/i,
+    slug: (match) => decodeURIComponent(match[1]),
   },
   {
     provider: 'smartrecruiters',
     pattern: /^(?:https?:\/\/)?jobs\.smartrecruiters\.com\/([a-z0-9-]+)(?:[/?#].*)?$/i,
+    slug: (match) => decodeURIComponent(match[1]),
   },
   {
     provider: 'smartrecruiters',
     pattern: /^(?:https?:\/\/)?careers\.smartrecruiters\.com\/([a-z0-9-]+)(?:[/?#].*)?$/i,
+    slug: (match) => decodeURIComponent(match[1]),
   },
   {
     provider: 'workable',
     pattern: /^(?:https?:\/\/)?apply\.workable\.com\/([a-z0-9-]+)(?:[/?#].*)?$/i,
+    slug: (match) => decodeURIComponent(match[1]),
   },
   {
     provider: 'workable',
     pattern: /^(?:https?:\/\/)?([a-z0-9-]+)\.workable\.com(?:[/?#].*)?$/i,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
+  {
+    provider: 'workday',
+    pattern:
+      /^(?:https?:\/\/)?([a-z0-9-]+)\.(wd[0-9]+)\.myworkdayjobs\.com\/(?:([a-z]{2}-[A-Z]{2})\/)?([^/?#]+)(?:[/?#].*)?$/i,
+    slug: (match) =>
+      `${decodeURIComponent(match[1])}:${decodeURIComponent(match[2])}:${decodeURIComponent(match[4])}`,
   },
 ];
 
-const BODY_PATTERNS: Array<{ provider: DetectResult['provider']; pattern: RegExp }> = [
-  { provider: 'greenhouse', pattern: /boards\.greenhouse\.io\/([a-z0-9-]+)/i },
-  { provider: 'greenhouse', pattern: /job-boards\.greenhouse\.io\/([a-z0-9-]+)/i },
-  { provider: 'greenhouse', pattern: /https?:\/\/([a-z0-9-]+)\.greenhouse\.io\b/i },
-  { provider: 'lever', pattern: /jobs\.lever\.co\/([a-z0-9-]+)/i },
-  { provider: 'ashby', pattern: /jobs\.ashbyhq\.com\/([^"'\\s<]+)/i },
-  { provider: 'smartrecruiters', pattern: /jobs\.smartrecruiters\.com\/([a-z0-9-]+)/i },
-  { provider: 'smartrecruiters', pattern: /careers\.smartrecruiters\.com\/([a-z0-9-]+)/i },
-  { provider: 'workable', pattern: /apply\.workable\.com\/([a-z0-9-]+)/i },
-  { provider: 'workable', pattern: /([a-z0-9-]+)\.workable\.com\b/i },
+const BODY_PATTERNS: PatternMatcher[] = [
+  {
+    provider: 'greenhouse',
+    pattern: /boards\.greenhouse\.io\/([a-z0-9-]+)/i,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
+  {
+    provider: 'greenhouse',
+    pattern: /job-boards\.greenhouse\.io\/([a-z0-9-]+)/i,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
+  {
+    provider: 'greenhouse',
+    pattern: /https?:\/\/([a-z0-9-]+)\.greenhouse\.io\b/i,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
+  {
+    provider: 'lever',
+    pattern: /jobs\.lever\.co\/([a-z0-9-]+)/i,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
+  {
+    provider: 'ashby',
+    pattern: /jobs\.ashbyhq\.com\/([^"'\s<]+)/i,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
+  {
+    provider: 'smartrecruiters',
+    pattern: /jobs\.smartrecruiters\.com\/([a-z0-9-]+)/i,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
+  {
+    provider: 'smartrecruiters',
+    pattern: /careers\.smartrecruiters\.com\/([a-z0-9-]+)/i,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
+  {
+    provider: 'workable',
+    pattern: /apply\.workable\.com\/([a-z0-9-]+)/i,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
+  {
+    provider: 'workable',
+    pattern: /([a-z0-9-]+)\.workable\.com\b/i,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
+  {
+    provider: 'workday',
+    pattern:
+      /([a-z0-9-]+)\.(wd[0-9]+)\.myworkdayjobs\.com\/(?:([a-z]{2}-[A-Z]{2})\/)?([^/?#"\s<]+)/i,
+    slug: (match) =>
+      `${decodeURIComponent(match[1])}:${decodeURIComponent(match[2])}:${decodeURIComponent(match[4])}`,
+  },
 ];
 
 function detectFromText(value: string): DetectResult {
   const trimmed = value.trim();
 
-  for (const { provider, pattern } of URL_PATTERNS) {
-    const match = trimmed.match(pattern);
+  for (const matcher of URL_PATTERNS) {
+    const match = trimmed.match(matcher.pattern);
     if (match) {
-      return { provider, slug: decodeURIComponent(match[1]) };
+      return { provider: matcher.provider, slug: matcher.slug(match) };
     }
   }
 
-  for (const { provider, pattern } of BODY_PATTERNS) {
-    const match = trimmed.match(pattern);
+  for (const matcher of BODY_PATTERNS) {
+    const match = trimmed.match(matcher.pattern);
     if (match) {
-      return { provider, slug: decodeURIComponent(match[1]) };
+      return { provider: matcher.provider, slug: matcher.slug(match) };
     }
   }
 

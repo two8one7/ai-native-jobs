@@ -6,6 +6,7 @@ import { fetchGreenhouse } from './greenhouse';
 import { fetchLever } from './lever';
 import { fetchSmartRecruiters } from './smartrecruiters';
 import { fetchWorkable } from './workable';
+import { fetchWorkday } from './workday';
 import { normalizeRawJob } from './normalize';
 import { upsertListings } from './store';
 import type { ATSProvider, RawJob } from './types';
@@ -18,6 +19,7 @@ const PROVIDER_FETCHERS: Record<ATSProvider, (slug: string) => Promise<RawJob[]>
   ashby: fetchAshby,
   smartrecruiters: fetchSmartRecruiters,
   workable: fetchWorkable,
+  workday: fetchWorkday,
 };
 
 export type ScrapeCompanyResult = {

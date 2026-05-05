@@ -1,6 +1,12 @@
 import type { Listing, ListingAISpecialty, ListingLocationPolicy } from '../../db/types';
 
-export type ATSProvider = 'greenhouse' | 'lever' | 'ashby' | 'smartrecruiters' | 'workable';
+export type ATSProvider =
+  | 'greenhouse'
+  | 'lever'
+  | 'ashby'
+  | 'smartrecruiters'
+  | 'workable'
+  | 'workday';
 
 export type DetectResult = {
   provider: ATSProvider | null;

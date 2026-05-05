@@ -29,9 +29,15 @@ function logSummary(
   listingCount: number,
   byProvider: Record<ATSProvider, number>,
 ): void {
-  const providerTotal = byProvider.greenhouse + byProvider.lever + byProvider.ashby;
+  const providerTotal =
+    byProvider.greenhouse +
+    byProvider.lever +
+    byProvider.ashby +
+    byProvider.smartrecruiters +
+    byProvider.workable +
+    byProvider.workday;
   console.log(
-    `scraped ${companyCount} companies, ${listingCount} listings, ${providerTotal} by provider {greenhouse: ${byProvider.greenhouse}, lever: ${byProvider.lever}, ashby: ${byProvider.ashby}}`,
+    `scraped ${companyCount} companies, ${listingCount} listings, ${providerTotal} by provider {greenhouse: ${byProvider.greenhouse}, lever: ${byProvider.lever}, ashby: ${byProvider.ashby}, smartrecruiters: ${byProvider.smartrecruiters}, workable: ${byProvider.workable}, workday: ${byProvider.workday}}`,
   );
 }
 
@@ -53,6 +59,7 @@ async function runAll(db: Database): Promise<void> {
     ashby: 0,
     smartrecruiters: 0,
     workable: 0,
+    workday: 0,
   };
 
   let scrapedCompanies = 0;
@@ -85,7 +92,7 @@ async function runAll(db: Database): Promise<void> {
 
 async function run(): Promise<void> {
   const db = getDb();
-  const [, , command, companySlug] = process.argv;
+  const [, , command] = process.argv;
 
   try {
     if (command === 'all') {
