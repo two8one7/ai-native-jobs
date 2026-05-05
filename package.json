@@ -24,6 +24,7 @@
     "typescript": "^5.9.2"
   },
   "dependencies": {
-    "node-html-parser": "^7.1.0"
+    "node-html-parser": "^7.1.0",
+    "stripe": "^22.1.0"
   }
 }

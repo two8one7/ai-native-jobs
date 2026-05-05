@@ -1,0 +1,241 @@
+---
+export const prerender = false;
+
+import Base from '../layouts/Base.astro';
+import {
+  ALLOWED_ATS_HOSTS,
+  ALLOWED_ATS_HOST_SUFFIXES,
+  FOUNDING_PRICE_CENTS,
+  STANDARD_PRICE_CENTS,
+  FOUNDING_TIER_LIMIT,
+  SPECIALTIES,
+  LOCATION_POLICIES,
+} from '../lib/stripe';
+import { withDb } from '../lib/db';
+
+const error = Astro.url.searchParams.get('error');
+
+let foundingRemaining = FOUNDING_TIER_LIMIT;
+try {
+  const sold = await withDb(async (db) => {
+    const row = db.prepare('SELECT COUNT(*) as count FROM paid_listings').get() as { count: number } | undefined;
+    return row?.count ?? 0;
+  });
+  foundingRemaining = Math.max(0, FOUNDING_TIER_LIMIT - sold);
+} catch {
+  // DB or table may not exist in fresh checkouts; default to full founding capacity.
+}
+const isFoundingTier = foundingRemaining > 0;
+const priceCents = isFoundingTier ? FOUNDING_PRICE_CENTS : STANDARD_PRICE_CENTS;
+const priceLabel = `$${(priceCents / 100).toFixed(0)}`;
+
+const atsHostHint = [
+  ...ALLOWED_ATS_HOSTS,
+  ...ALLOWED_ATS_HOST_SUFFIXES.map((suffix) => `*${suffix}`),
+].join(', ');
+---
+
+<Base title="Post a job · AI Native Jobs" description="Post a 30-day AI-native job listing.">
+  <section class="mx-auto max-w-2xl">
+    <h1 class="font-serif text-4xl leading-tight text-ink">Post a job</h1>
+    <p class="mt-3 text-sm leading-6 text-black/65">
+      Listings run for 30 days. Apply links must point at lever, greenhouse, or ashby — we don't host application
+      forms.
+    </p>
+
+    <div class="mt-6 rounded-lg border border-black/10 bg-white/40 p-4 text-sm">
+      <p class="font-semibold text-ink">
+        {isFoundingTier ? `Founding price: ${priceLabel}` : `Standard price: ${priceLabel}`}
+      </p>
+      <p class="mt-1 text-black/65">
+        {
+          isFoundingTier
+            ? `${foundingRemaining} founding slot${foundingRemaining === 1 ? '' : 's'} of ${FOUNDING_TIER_LIMIT} remaining. Price returns to $${STANDARD_PRICE_CENTS / 100} once they're claimed.`
+            : `Founding-tier slots are sold out. New listings are $${STANDARD_PRICE_CENTS / 100}.`
+        }
+      </p>
+    </div>
+
+    {
+      error ? (
+        <p class="mt-6 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+          {decodeURIComponent(error)}
+        </p>
+      ) : null
+    }
+
+    <form method="POST" action="/api/stripe/checkout" class="mt-8 grid gap-6">
+      <fieldset class="grid gap-2">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-black/55">Company</legend>
+        <label class="grid gap-1 text-sm">
+          <span class="text-black/75">Company name</span>
+          <input
+            type="text"
+            name="company_name"
+            required
+            maxlength="120"
+            class="rounded-md border border-black/15 bg-white px-3 py-2 text-ink focus:border-accent focus:outline-none"
+          />
+        </label>
+        <label class="grid gap-1 text-sm">
+          <span class="text-black/75">Company website</span>
+          <input
+            type="url"
+            name="company_website"
+            required
+            placeholder="https://example.com"
+            class="rounded-md border border-black/15 bg-white px-3 py-2 text-ink focus:border-accent focus:outline-none"
+          />
+        </label>
+        <label class="grid gap-1 text-sm">
+          <span class="text-black/75">Billing email (Stripe receipt sent here)</span>
+          <input
+            type="email"
+            name="customer_email"
+            required
+            class="rounded-md border border-black/15 bg-white px-3 py-2 text-ink focus:border-accent focus:outline-none"
+          />
+        </label>
+      </fieldset>
+
+      <fieldset class="grid gap-2">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-black/55">Role</legend>
+        <label class="grid gap-1 text-sm">
+          <span class="text-black/75">Title</span>
+          <input
+            type="text"
+            name="title"
+            required
+            maxlength="160"
+            class="rounded-md border border-black/15 bg-white px-3 py-2 text-ink focus:border-accent focus:outline-none"
+          />
+        </label>
+        <label class="grid gap-1 text-sm">
+          <span class="text-black/75">Apply URL ({atsHostHint})</span>
+          <input
+            type="url"
+            name="apply_url"
+            required
+            placeholder="https://jobs.ashbyhq.com/your-co/abc123"
+            class="rounded-md border border-black/15 bg-white px-3 py-2 text-ink focus:border-accent focus:outline-none"
+          />
+        </label>
+        <label class="grid gap-1 text-sm">
+          <span class="text-black/75">Description</span>
+          <textarea
+            name="description"
+            required
+            rows="8"
+            maxlength="6000"
+            class="rounded-md border border-black/15 bg-white px-3 py-2 font-mono text-ink focus:border-accent focus:outline-none"
+          ></textarea>
+        </label>
+      </fieldset>
+
+      <fieldset class="grid gap-2">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-black/55">Location</legend>
+        <div class="grid gap-2 sm:grid-cols-2">
+          <label class="grid gap-1 text-sm">
+            <span class="text-black/75">City (optional)</span>
+            <input
+              type="text"
+              name="location_city"
+              maxlength="80"
+              class="rounded-md border border-black/15 bg-white px-3 py-2 text-ink focus:border-accent focus:outline-none"
+            />
+          </label>
+          <label class="grid gap-1 text-sm">
+            <span class="text-black/75">Country</span>
+            <input
+              type="text"
+              name="location_country"
+              required
+              maxlength="60"
+              placeholder="US"
+              class="rounded-md border border-black/15 bg-white px-3 py-2 text-ink focus:border-accent focus:outline-none"
+            />
+          </label>
+        </div>
+        <label class="grid gap-1 text-sm">
+          <span class="text-black/75">Policy</span>
+          <select
+            name="location_policy"
+            required
+            class="rounded-md border border-black/15 bg-white px-3 py-2 text-ink focus:border-accent focus:outline-none"
+          >
+            {LOCATION_POLICIES.map((p) => <option value={p}>{p}</option>)}
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset class="grid gap-2">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-black/55">AI</legend>
+        <label class="grid gap-1 text-sm">
+          <span class="text-black/75">Specialty (optional)</span>
+          <select
+            name="ai_specialty"
+            class="rounded-md border border-black/15 bg-white px-3 py-2 text-ink focus:border-accent focus:outline-none"
+          >
+            <option value="">—</option>
+            {SPECIALTIES.map((s) => <option value={s}>{s}</option>)}
+          </select>
+        </label>
+        <label class="grid gap-1 text-sm">
+          <span class="text-black/75">Stack (comma-separated, e.g. pytorch, cuda, vllm)</span>
+          <input
+            type="text"
+            name="ai_stack"
+            maxlength="240"
+            class="rounded-md border border-black/15 bg-white px-3 py-2 text-ink focus:border-accent focus:outline-none"
+          />
+        </label>
+      </fieldset>
+
+      <fieldset class="grid gap-2">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-black/55">Comp (optional)</legend>
+        <div class="grid gap-2 sm:grid-cols-3">
+          <label class="grid gap-1 text-sm">
+            <span class="text-black/75">Min (USD)</span>
+            <input
+              type="number"
+              name="comp_min"
+              min="0"
+              max="10000000"
+              class="rounded-md border border-black/15 bg-white px-3 py-2 text-ink focus:border-accent focus:outline-none"
+            />
+          </label>
+          <label class="grid gap-1 text-sm">
+            <span class="text-black/75">Max (USD)</span>
+            <input
+              type="number"
+              name="comp_max"
+              min="0"
+              max="10000000"
+              class="rounded-md border border-black/15 bg-white px-3 py-2 text-ink focus:border-accent focus:outline-none"
+            />
+          </label>
+          <label class="grid gap-1 text-sm">
+            <span class="text-black/75">Currency</span>
+            <input
+              type="text"
+              name="comp_currency"
+              value="USD"
+              maxlength="6"
+              class="rounded-md border border-black/15 bg-white px-3 py-2 text-ink focus:border-accent focus:outline-none"
+            />
+          </label>
+        </div>
+      </fieldset>
+
+      <button
+        type="submit"
+        class="rounded-md bg-ink px-5 py-3 text-sm font-semibold text-paper hover:bg-accent focus:outline-none"
+      >
+        Continue to checkout · {priceLabel}
+      </button>
+      <p class="text-xs text-black/55">
+        You'll be sent to Stripe to pay. Once payment clears the listing goes live within seconds.
+      </p>
+    </form>
+  </section>
+</Base>

@@ -41,3 +41,18 @@ CREATE INDEX IF NOT EXISTS idx_listings_company_id
 
 CREATE INDEX IF NOT EXISTS idx_companies_slug
   ON companies(slug);
+
+CREATE TABLE IF NOT EXISTS paid_listings (
+  id TEXT PRIMARY KEY,
+  listing_id TEXT NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+  stripe_session_id TEXT UNIQUE NOT NULL,
+  stripe_event_id TEXT UNIQUE NOT NULL,
+  tier TEXT NOT NULL CHECK(tier IN ('founding', 'standard')),
+  amount_cents INTEGER NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'usd',
+  customer_email TEXT NOT NULL,
+  paid_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_paid_listings_event_id
+  ON paid_listings(stripe_event_id);
