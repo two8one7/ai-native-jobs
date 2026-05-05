@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<!--
+  Fixture: simplified snapshot of a public Notion careers board.
+  Source workspace: "example-corp" (fictional; mirrors the real page structure
+  produced by notion.so's Next.js renderer as of 2025-05).
+
+  Three job rows in the "Open Positions" collection:
+    1. ab12cd34-ef56-7890-ab12-cd34ef567890  Senior ML Engineer
+    2. 12ab34cd-ef56-7890-12ab-34cdef567890  Platform Engineer, AI Infrastructure
+    3. ef90ab12-cd34-5678-ef90-ab12cd345678  Research Scientist, NLP  (last_edited_time absent)
+
+  DOM fallback rows are included after the __NEXT_DATA__ block to exercise
+  the regex-based fallback path when __NEXT_DATA__ is absent.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Careers – Example Corp</title>
+</head>
+<body>
+
+<!-- Minimal Notion page shell -->
+<div class="notion-app-inner">
+  <div class="notion-frame">
+    <div class="notion-page-content">
+
+      <!-- DOM fallback: collection rows rendered by Notion's React renderer -->
+      <div class="notion-collection-row">
+        <div class="notion-collection-row-body">
+          <div class="notion-collection-row-property">
+            <div class="notion-page-title">
+              <a href="/example-corp/Senior-ML-Engineer-ab12cd34ef567890ab12cd34ef567890">Senior ML Engineer</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notion-collection-row">
+        <div class="notion-collection-row-body">
+          <div class="notion-collection-row-property">
+            <div class="notion-page-title">
+              <a href="/example-corp/Platform-Engineer-AI-Infrastructure-12ab34cdef567890ab12cd34ef567890">Platform Engineer, AI Infrastructure</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notion-collection-row">
+        <div class="notion-collection-row-body">
+          <div class="notion-collection-row-property">
+            <div class="notion-page-title">
+              <a href="/example-corp/Research-Scientist-NLP-ef90ab12cd345678ef90ab12cd345678">Research Scientist, NLP</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script id="__NEXT_DATA__" type="application/json">
+{
+  "props": {
+    "pageProps": {
+      "recordMap": {
+        "block": {
+          "root-page-0000-0000-0000-000000000000": {
+            "role": "reader",
+            "value": {
+              "id": "root-page-0000-0000-0000-000000000000",
+              "type": "collection_view_page",
+              "properties": {
+                "title": [["Careers"]]
+              },
+              "content": ["coll-view-0000-0000-0000-000000000000"],
+              "last_edited_time": 1746057600000,
+              "parent_id": null,
+              "parent_table": "space"
+            }
+          },
+          "coll-view-0000-0000-0000-000000000000": {
+            "role": "reader",
+            "value": {
+              "id": "coll-view-0000-0000-0000-000000000000",
+              "type": "collection_view",
+              "collection_id": "coll-id-00000000-0000-0000-0000-000000000001",
+              "view_ids": ["view-id-00000000-0000-0000-0000-000000000001"],
+              "parent_id": "root-page-0000-0000-0000-000000000000",
+              "parent_table": "block",
+              "last_edited_time": 1746057600000
+            }
+          },
+          "ab12cd34-ef56-7890-ab12-cd34ef567890": {
+            "role": "reader",
+            "value": {
+              "id": "ab12cd34-ef56-7890-ab12-cd34ef567890",
+              "type": "page",
+              "properties": {
+                "title": [["Senior ML Engineer"]]
+              },
+              "last_edited_time": 1746057600000,
+              "parent_id": "coll-id-00000000-0000-0000-0000-000000000001",
+              "parent_table": "collection"
+            }
+          },
+          "12ab34cd-ef56-7890-12ab-34cdef567890": {
+            "role": "reader",
+            "value": {
+              "id": "12ab34cd-ef56-7890-12ab-34cdef567890",
+              "type": "page",
+              "properties": {
+                "title": [["Platform Engineer, AI Infrastructure"]]
+              },
+              "last_edited_time": 1746144000000,
+              "parent_id": "coll-id-00000000-0000-0000-0000-000000000001",
+              "parent_table": "collection"
+            }
+          },
+          "ef90ab12-cd34-5678-ef90-ab12cd345678": {
+            "role": "reader",
+            "value": {
+              "id": "ef90ab12-cd34-5678-ef90-ab12cd345678",
+              "type": "page",
+              "properties": {
+                "title": [["Research Scientist, NLP"]]
+              },
+              "last_edited_time": null,
+              "parent_id": "coll-id-00000000-0000-0000-0000-000000000001",
+              "parent_table": "collection"
+            }
+          }
+        },
+        "collection": {
+          "coll-id-00000000-0000-0000-0000-000000000001": {
+            "role": "reader",
+            "value": {
+              "id": "coll-id-00000000-0000-0000-0000-000000000001",
+              "name": [["Open Positions"]],
+              "schema": {
+                "title": { "name": "Position", "type": "title" }
+              }
+            }
+          }
+        },
+        "collection_view": {
+          "view-id-00000000-0000-0000-0000-000000000001": {
+            "role": "reader",
+            "value": {
+              "id": "view-id-00000000-0000-0000-0000-000000000001",
+              "type": "table",
+              "collection_id": "coll-id-00000000-0000-0000-0000-000000000001",
+              "name": "All Jobs"
+            }
+          }
+        }
+      }
+    }
+  },
+  "page": "/[pageId]",
+  "query": {},
+  "buildId": "example-build-id",
+  "nextExport": false,
+  "autoExport": false,
+  "isFallback": false
+}
+</script>
+
+</body>
+</html>

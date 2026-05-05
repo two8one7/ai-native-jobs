@@ -59,6 +59,20 @@ const URL_PATTERNS: PatternMatcher[] = [
     slug: (match) =>
       `${decodeURIComponent(match[1])}:${decodeURIComponent(match[2])}:${decodeURIComponent(match[4])}`,
   },
+  // notion.site subdomain pages: https://<workspace>.notion.site/<page-path>
+  {
+    provider: 'notion',
+    pattern: /^(?:https?:\/\/)?[a-z0-9-]+\.notion\.site\/([^/?#]+)(?:[/?#].*)?$/i,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
+  // notion.so workspace pages: https://www.notion.so/<workspace>/<page-id>
+  {
+    provider: 'notion',
+    pattern:
+      /^(?:https?:\/\/)?(?:www\.)?notion\.so\/([^/?#]+)\/([a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})(?:[/?#].*)?$/i,
+    slug: (match) =>
+      `${decodeURIComponent(match[1])}:${decodeURIComponent(match[2])}`,
+  },
 ];
 
 const BODY_PATTERNS: PatternMatcher[] = [
@@ -113,6 +127,20 @@ const BODY_PATTERNS: PatternMatcher[] = [
       /([a-z0-9-]+)\.(wd[0-9]+)\.myworkdayjobs\.com\/(?:([a-z]{2}-[A-Z]{2})\/)?([^/?#"\s<]+)/i,
     slug: (match) =>
       `${decodeURIComponent(match[1])}:${decodeURIComponent(match[2])}:${decodeURIComponent(match[4])}`,
+  },
+  // notion.site body pattern: picks up path after any *.notion.site/
+  {
+    provider: 'notion',
+    pattern: /notion\.site\/([^/?#"'\s<]+)/i,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
+  // notion.so body pattern: workspace + page UUID
+  {
+    provider: 'notion',
+    pattern:
+      /notion\.so\/([^/?#"'\s<]+)\/([a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i,
+    slug: (match) =>
+      `${decodeURIComponent(match[1])}:${decodeURIComponent(match[2])}`,
   },
 ];
 

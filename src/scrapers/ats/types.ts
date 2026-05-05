@@ -6,7 +6,8 @@ export type ATSProvider =
   | 'ashby'
   | 'smartrecruiters'
   | 'workable'
-  | 'workday';
+  | 'workday'
+  | 'notion';
 
 export type DetectResult = {
   provider: ATSProvider | null;
