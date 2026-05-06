@@ -36,15 +36,15 @@ describe('backfill 4xx handling', () => {
 
     // Mock fetch to return 404
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = async (url: string | URL | Request) => {
+    globalThis.fetch = (async (_url: string | URL | Request) => {
       return new Response(null, { status: 404, statusText: 'Not Found' });
-    };
+    }) as typeof fetch;
 
     try {
-      // Import and run the backfill logic
-      const { default: run } = await import('../bin/backfill-descriptions');
-      // We can't easily run the full script, so we'll test the fetch logic directly
-      // Instead, let's verify the listing starts active
+      // NOTE: This test does not exercise the actual backfill loop — see
+      // https://github.com/two8one7/ai-native-jobs/issues for the follow-up to
+      // refactor `fetchHtml` into an exported helper so it can be tested
+      // directly. For now this only documents the expected end-state shape.
       const beforeListing = db.prepare('SELECT status, expires_at FROM listings WHERE id = ?').get(listingId) as { status: string; expires_at: number };
       expect(beforeListing.status).toBe('active');
       expect(beforeListing.expires_at).toBeGreaterThan(now);

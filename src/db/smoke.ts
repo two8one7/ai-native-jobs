@@ -13,9 +13,9 @@ function removeSmokeFiles(): void {
   }
 }
 
-function runSmoke(): void {
+async function runSmoke(): Promise<void> {
   removeSmokeFiles();
-  migrate(smokeDbPath);
+  await migrate(smokeDbPath);
 
   const db = new Database(smokeDbPath);
   try {
@@ -124,10 +124,11 @@ function runSmoke(): void {
   }
 }
 
-try {
-  runSmoke();
-  console.log('db smoke passed');
-} catch (error) {
-  console.error(error);
-  process.exitCode = 1;
-}
+runSmoke()
+  .then(() => {
+    console.log('db smoke passed');
+  })
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });

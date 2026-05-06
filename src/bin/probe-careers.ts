@@ -124,7 +124,7 @@ function logSummary(
 }
 
 async function run(): Promise<void> {
-  const db = getDb();
+  const db = await getDb();
   const args = parseArgs(process.argv.slice(2));
 
   const scheduler = createCareersProbeScheduler(6);
