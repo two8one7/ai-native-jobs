@@ -1,3 +1,4 @@
+import { htmlDecode } from './normalize';
 import type { RawJob } from './types';
 
 type GreenhouseJob = {
@@ -32,7 +33,7 @@ export async function fetchGreenhouse(slug: string): Promise<RawJob[]> {
     providerJobId: String(job.id),
     title: job.title,
     location: job.location?.name ?? null,
-    description: job.content ?? '',
+    description: htmlDecode(job.content ?? ''),
     applyUrl: job.absolute_url ?? `https://boards.greenhouse.io/${slug}`,
     postedAt: job.updated_at ?? null,
   }));
