@@ -1,12 +1,12 @@
-import { Database } from 'bun:sqlite';
 import { resolve } from 'node:path';
 import { scrapeYC } from '../scrapers/yc';
+import { openDbWrite } from '../lib/db-write';
 
 const DEFAULT_DB_PATH = './data/ai-native-jobs.db';
 
 async function run() {
   const dbPath = resolve(process.env.AINATIVE_DB_PATH ?? DEFAULT_DB_PATH);
-  const db = new Database(dbPath);
+  const db = await openDbWrite(dbPath);
 
   try {
     console.log('scraping YC companies...');

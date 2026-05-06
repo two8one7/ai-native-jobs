@@ -66,34 +66,36 @@ function seedPreWaasDb(dbPath: string, extraCompaniesColumns: string[] = []): vo
 }
 
 describe('migrate — unknown-column guard', () => {
-  test('aborts with the unknown column name when companies has an out-of-band column', () => {
+  test('aborts with the unknown column name when companies has an out-of-band column', async () => {
     const dbPath = join(tmpdir(), `anj-25-abort-${Date.now()}.db`);
     seedPreWaasDb(dbPath, ['careers_url_blocked']);
 
-    expect(() => migrate(dbPath)).toThrow('careers_url_blocked');
-    expect(() => migrate(dbPath)).toThrow('Migration would drop unknown columns');
+    await expect(migrate(dbPath)).rejects.toThrow('careers_url_blocked');
+    await expect(migrate(dbPath)).rejects.toThrow('Migration would drop unknown columns');
   });
 
-  test('succeeds (no throw) when companies has no unknown columns', () => {
+  test('succeeds (no throw) when companies has no unknown columns', async () => {
     const dbPath = join(tmpdir(), `anj-25-clean-${Date.now()}.db`);
     seedPreWaasDb(dbPath);
 
-    expect(() => migrate(dbPath)).not.toThrow();
+    const result = await migrate(dbPath);
+    expect(result).toBe(dbPath);
   });
 
-  test('succeeds on a fresh (empty) DB with no pre-existing tables', () => {
+  test('succeeds on a fresh (empty) DB with no pre-existing tables', async () => {
     const dbPath = join(tmpdir(), `anj-25-fresh-${Date.now()}.db`);
     // No seeding — migrate creates everything from schema.sql; WaaS guard not triggered.
-    expect(() => migrate(dbPath)).not.toThrow();
+    const result = await migrate(dbPath);
+    expect(result).toBe(dbPath);
   });
 
-  test('error message lists all unknown columns', () => {
+  test('error message lists all unknown columns', async () => {
     const dbPath = join(tmpdir(), `anj-25-multi-${Date.now()}.db`);
     seedPreWaasDb(dbPath, ['col_alpha', 'col_beta']);
 
     let threw = false;
     try {
-      migrate(dbPath);
+      await migrate(dbPath);
     } catch (e) {
       threw = true;
       const msg = (e as Error).message;

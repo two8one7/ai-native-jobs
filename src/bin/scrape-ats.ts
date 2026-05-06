@@ -1,13 +1,14 @@
-import { Database } from 'bun:sqlite';
+import type { Database } from 'bun:sqlite';
 import { resolve } from 'node:path';
 import type { Company } from '../db/types';
 import { scrapeCompanyListings } from '../scrapers/ats';
 import type { ATSProvider } from '../scrapers/ats';
+import { openDbWrite } from '../lib/db-write';
 
 const DEFAULT_DB_PATH = './data/ai-native-jobs.db';
 
-function getDb(): Database {
-  return new Database(resolve(process.env.AINATIVE_DB_PATH ?? DEFAULT_DB_PATH));
+async function getDb(): Promise<Database> {
+  return await openDbWrite(resolve(process.env.AINATIVE_DB_PATH ?? DEFAULT_DB_PATH));
 }
 
 function getCompanyBySlug(db: Database, slug: string): Company | null {
@@ -95,7 +96,7 @@ async function runAll(db: Database): Promise<void> {
 }
 
 async function run(): Promise<void> {
-  const db = getDb();
+  const db = await getDb();
   const [, , command] = process.argv;
 
   try {

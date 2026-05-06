@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import type { Database } from 'bun:sqlite';
 import { resolve } from 'node:path';
 import type { CareersProbeResult, Company, CompanyATSProvider } from '../db/types';
 import {
@@ -8,6 +8,7 @@ import {
   shouldProbeCompany,
   type ProbeableCompany,
 } from '../scrapers/ats/probe';
+import { openDbWrite } from '../lib/db-write';
 
 const DEFAULT_DB_PATH = './data/ai-native-jobs.db';
 
@@ -25,8 +26,8 @@ type ProviderCountRow = {
   count: number;
 };
 
-function getDb(): Database {
-  return new Database(resolve(process.env.AINATIVE_DB_PATH ?? DEFAULT_DB_PATH));
+async function getDb(): Promise<Database> {
+  return await openDbWrite(resolve(process.env.AINATIVE_DB_PATH ?? DEFAULT_DB_PATH));
 }
 
 function parseArgs(argv: string[]): CliArgs {

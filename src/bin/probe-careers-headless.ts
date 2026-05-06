@@ -7,7 +7,7 @@
  *
  * Brain runs this manually after review. Not auto-scheduled.
  */
-import { Database } from 'bun:sqlite';
+import type { Database } from 'bun:sqlite';
 import { resolve } from 'node:path';
 import type { CareersProbeResult, Company } from '../db/types';
 import { renderViaCdp, type RenderResult } from '../scrapers/ats/cdp-render';
@@ -17,6 +17,7 @@ import {
   probeCompanyCareersWithRender,
   type ProbeableCompany,
 } from '../scrapers/ats/probe';
+import { openDbWrite } from '../lib/db-write';
 
 const DEFAULT_DB_PATH = './data/ai-native-jobs.db';
 const RENDER_CONCURRENCY = 2;
@@ -29,8 +30,8 @@ type CliArgs = {
   only: string | null;
 };
 
-function getDb(): Database {
-  return new Database(resolve(process.env.AINATIVE_DB_PATH ?? DEFAULT_DB_PATH));
+async function getDb(): Promise<Database> {
+  return await openDbWrite(resolve(process.env.AINATIVE_DB_PATH ?? DEFAULT_DB_PATH));
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -174,7 +175,7 @@ function getHost(company: ProbeableCompany): string {
 
 async function run(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
-  const db = getDb();
+  const db = await getDb();
 
   if (!process.env.TOMMYATO_BROWSER_CDP_URL) {
     console.error('TOMMYATO_BROWSER_CDP_URL is not set; nothing to render');

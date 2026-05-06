@@ -24,10 +24,11 @@
  * DO NOT run automatically. Brain runs this interactively after review.
  */
 
-import { Database } from 'bun:sqlite';
+import type { Database } from 'bun:sqlite';
 import { resolve } from 'node:path';
 import { parse } from 'node-html-parser';
 import { sanitizeHtml, stripTags } from '../scrapers/ats/normalize';
+import { openDbWrite } from '../lib/db-write';
 
 const DB_PATH = resolve(process.env.AINATIVE_DB_PATH ?? './data/ai-native-jobs.db');
 const FETCH_TIMEOUT_MS = 15_000;
@@ -115,7 +116,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 async function run(): Promise<void> {
-  const db = new Database(DB_PATH);
+  const db = await openDbWrite(DB_PATH);
   const now = Date.now();
 
   const emptyListings = db

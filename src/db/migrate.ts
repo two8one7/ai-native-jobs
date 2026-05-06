@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { Database } from 'bun:sqlite';
+import type { Database } from 'bun:sqlite';
+import { openDbWrite } from '../lib/db-write';
 
 const DEFAULT_DB_PATH = './data/ai-native-jobs.db';
 const SCHEMA_PATH = new URL('./schema.sql', import.meta.url);
@@ -88,14 +89,16 @@ function rebuildCompaniesTableWithWaaSConstraint(db: Database): void {
   }
 }
 
-export function migrate(dbPath = process.env.AINATIVE_DB_PATH ?? DEFAULT_DB_PATH): string {
+export async function migrate(dbPath = process.env.AINATIVE_DB_PATH ?? DEFAULT_DB_PATH): Promise<string> {
   const absoluteDbPath = resolve(dbPath);
   mkdirSync(dirname(absoluteDbPath), { recursive: true });
 
-  const db = new Database(absoluteDbPath);
+  return await runMigration(absoluteDbPath);
+}
+
+async function runMigration(absoluteDbPath: string): Promise<string> {
+  const db = await openDbWrite(absoluteDbPath);
   try {
-    db.exec('PRAGMA foreign_keys = ON;');
-    
     // First, create tables from schema
     db.exec(readFileSync(SCHEMA_PATH, 'utf8'));
     
@@ -143,6 +146,10 @@ export function migrate(dbPath = process.env.AINATIVE_DB_PATH ?? DEFAULT_DB_PATH
 }
 
 if (import.meta.main) {
-  const dbPath = migrate();
-  console.log(`migrated ${dbPath}`);
+  migrate().then((dbPath) => {
+    console.log(`migrated ${dbPath}`);
+  }).catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 }
