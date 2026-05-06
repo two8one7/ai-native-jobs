@@ -7,6 +7,33 @@ const SCHEMA_PATH = new URL('./schema.sql', import.meta.url);
 const ATS_PROVIDER_CHECK_SQL =
   "CHECK(ats_provider IN ('greenhouse', 'lever', 'ashby', 'smartrecruiters', 'workable', 'workday', 'notion', 'waas', 'custom'))";
 
+// Canonical column set for the companies table rebuild. Any live column NOT in
+// this set will cause the migration to abort — ops must drop the column or add
+// it to the canonical schema before retrying.
+const COMPANIES_CANONICAL_COLUMNS = new Set([
+  'id', 'slug', 'name', 'yc_batch', 'website', 'logo_url', 'description',
+  'careers_url', 'ats_provider', 'careers_probe_at', 'careers_probe_result', 'created_at',
+]);
+
+/**
+ * Throws if the live table has any column not in `canonicalColumns`. Use before
+ * any table-rebuild that re-creates the table with a fixed INSERT-SELECT column
+ * list, so out-of-band columns are never silently dropped.
+ */
+function assertNoUnknownColumns(
+  db: Database,
+  tableName: string,
+  canonicalColumns: Set<string>,
+): void {
+  const tableInfo = db.query(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;
+  const unknown = tableInfo.map(r => r.name).filter(n => !canonicalColumns.has(n));
+  if (unknown.length > 0) {
+    throw new Error(
+      `Migration would drop unknown columns: [${unknown.join(', ')}]; aborting. Investigate before retrying.`,
+    );
+  }
+}
+
 function companiesTableSupportsWaaS(db: Database): boolean {
   const row = db
     .query(
@@ -18,6 +45,7 @@ function companiesTableSupportsWaaS(db: Database): boolean {
 }
 
 function rebuildCompaniesTableWithWaaSConstraint(db: Database): void {
+  assertNoUnknownColumns(db, 'companies', COMPANIES_CANONICAL_COLUMNS);
   db.exec('PRAGMA foreign_keys = OFF;');
 
   try {

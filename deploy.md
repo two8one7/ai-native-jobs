@@ -2,6 +2,10 @@
 
 Production target: `https://ai-native-jobs.tommyato.com` on the tommyato droplet (`67.205.167.181`). The `.com` is deferred — flip via `PUBLIC_SITE_URL` env when registered.
 
+## Schema migration contract
+
+`bun run migrate` aborts startup if it would silently drop any column the code doesn't know about. Specifically, any table-rebuild migration (currently: the companies-table WaaS constraint expansion) runs `PRAGMA table_info(<table>)` before touching anything and throws `Migration would drop unknown columns: [<list>]; aborting. Investigate before retrying.` if it finds a column outside the canonical schema. This is intentional: ops must either `ALTER TABLE <table> DROP COLUMN <col>` or add the column to the canonical schema in code before the migration will proceed. Never add columns to production tables out-of-band without also updating the canonical column set in `src/db/migrate.ts`.
+
 ## Topology
 
 | Layer | Where |
