@@ -91,7 +91,7 @@ export function extractMainContent(html: string): string {
   return body ? body.innerHTML : root.innerHTML;
 }
 
-async function fetchHtml(url: string): Promise<string | null> {
+async function fetchHtml(url: string): Promise<{ html: string | null; permanentlyDead: boolean; status?: number }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -101,11 +101,14 @@ async function fetchHtml(url: string): Promise<string | null> {
       headers: { 'user-agent': USER_AGENT },
     });
     if (!response.ok) {
-      return null;
+      const status = response.status;
+      const permanentlyDead = status >= 400 && status < 500;
+      return { html: null, permanentlyDead, status };
     }
-    return await response.text();
-  } catch {
-    return null;
+    const html = await response.text();
+    return { html, permanentlyDead: false };
+  } catch (error) {
+    return { html: null, permanentlyDead: false };
   } finally {
     clearTimeout(timer);
   }
@@ -142,9 +145,20 @@ async function run(): Promise<void> {
     }
     processed += 1;
 
-    const html = await fetchHtml(listing.apply_url);
+    const { html, permanentlyDead, status } = await fetchHtml(listing.apply_url);
+    
+    if (permanentlyDead) {
+      expireListing(db, listing.id, now);
+      expired += 1;
+      console.log(`dead url=${listing.apply_url} status=${status}`);
+      continue;
+    }
+
     if (!html) {
       errors += 1;
+      if (status) {
+        console.log(`fetch status=${status} url=${listing.apply_url}`);
+      }
       continue;
     }
 
