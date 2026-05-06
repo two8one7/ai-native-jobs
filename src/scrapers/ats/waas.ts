@@ -261,7 +261,11 @@ async function tryFetchEmbeddedWebsiteJobs(company: Company, slug: string): Prom
   return [];
 }
 
-function getWaaSSlug(company: Company): string {
+function getWaaSSlug(company: Company, knownSlug?: string): string {
+  if (knownSlug) {
+    return knownSlug;
+  }
+
   const detected = detectFromText(company.careers_url ?? '');
   if (!detected.slug) {
     throw new Error(`WaaS careers_url missing slug for ${company.slug}`);
@@ -279,8 +283,8 @@ async function fetchCanonicalCompanyJobs(slug: string): Promise<RawJob[]> {
   return parseWaaSCompanyHtml(html, slug);
 }
 
-export async function scrapeWaaS(company: Company): Promise<RawJob[]> {
-  const slug = getWaaSSlug(company);
+export async function scrapeWaaS(company: Company, knownSlug?: string): Promise<RawJob[]> {
+  const slug = getWaaSSlug(company, knownSlug);
 
   const jsonJobs = await tryFetchJobsJson(slug);
   if (jsonJobs && jsonJobs.length > 0) {

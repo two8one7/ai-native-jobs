@@ -35,6 +35,22 @@ beforeEach(() => {
       return new Response('not found', { status: 404 });
     }
 
+    if (url === 'https://www.workatastartup.com/companies/example-co/jobs.json') {
+      return new Response(
+        JSON.stringify([
+          {
+            id: 'signup-2',
+            title: 'Runtime Detected Engineer',
+            url: '/companies/example-co/jobs/runtime-detected-engineer',
+            location: 'Remote (US)',
+            description:
+              'Ship resilient hiring workflows for customers that surface their WaaS jobs from their own careers page.',
+          },
+        ]),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    }
+
     if (url === 'https://example.com/' || url === 'https://example.com/careers') {
       return new Response(loadFixture('corgi-embed.html'), {
         status: 200,
@@ -79,6 +95,24 @@ describe('scrapeWaaS', () => {
       'https://www.workatastartup.com/companies/corgi-insurance/jobs/bJnshAq-full-stack-software-engineer',
     );
     expect(jobs[0].description.length).toBeGreaterThan(100);
+  });
+
+  test('uses a runtime-detected slug when careers_url is not canonical', async () => {
+    const jobs = await scrapeWaaS(
+      makeCompany({
+        slug: 'example',
+        careers_url: 'https://example.com/careers',
+      }),
+      'example-co',
+    );
+
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]).toMatchObject({
+      provider: 'waas',
+      providerJobId: 'signup-2',
+      applyUrl:
+        'https://www.workatastartup.com/companies/example-co/jobs/runtime-detected-engineer',
+    });
   });
 
   test('uses jobs.json when the endpoint returns a list', async () => {

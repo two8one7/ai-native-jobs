@@ -65,7 +65,7 @@ export async function scrapeCompanyListings(
 
   const rawJobs =
     detected.provider === 'waas'
-      ? await scrapeWaaS(company)
+      ? await scrapeWaaS(company, detected.slug)
       : await PROVIDER_FETCHERS[detected.provider](detected.slug);
   const listings = rawJobs.map((rawJob) =>
     normalizeRawJob(rawJob, {
