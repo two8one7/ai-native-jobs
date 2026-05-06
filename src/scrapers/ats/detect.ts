@@ -1,5 +1,18 @@
 import type { DetectResult } from './types';
 
+const WAAS_COMPANY_PATTERN =
+  /^(?:https?:\/\/)?(?:www\.)?workatastartup\.com\/companies\/([a-z0-9-]+)(?:[/?#].*)?$/i;
+const WAAS_JOB_URL_PATTERN =
+  /https?:\/\/(?:www\.)?workatastartup\.com\/companies\/([a-z0-9-]+)\/jobs\/[^"'\\s<]+/i;
+const WAAS_JOB_PATH_PATTERN = /\/companies\/([a-z0-9-]+)\/jobs\/[^"'\\s<]+/i;
+const WAAS_SLUG_DATA_PATTERN =
+  /(?:&quot;|")slug(?:&quot;|")\s*:\s*(?:&quot;|")([a-z0-9-]+)(?:&quot;|")/i;
+const WAAS_SIGNAL_PATTERNS = [
+  'workatastartup.com',
+  'bookface-images.s3.us-west-2.amazonaws.com',
+  'bookface-images.s3.amazonaws.com',
+] as const;
+
 type PatternMatcher = {
   provider: DetectResult['provider'];
   pattern: RegExp;
@@ -7,6 +20,11 @@ type PatternMatcher = {
 };
 
 const URL_PATTERNS: PatternMatcher[] = [
+  {
+    provider: 'waas',
+    pattern: WAAS_COMPANY_PATTERN,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
   {
     provider: 'greenhouse',
     pattern: /^(?:https?:\/\/)?boards\.greenhouse\.io\/([a-z0-9-]+)(?:[/?#].*)?$/i,
@@ -80,6 +98,11 @@ const URL_PATTERNS: PatternMatcher[] = [
 
 const BODY_PATTERNS: PatternMatcher[] = [
   {
+    provider: 'waas',
+    pattern: WAAS_JOB_URL_PATTERN,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
+  {
     provider: 'greenhouse',
     pattern: /boards\.greenhouse\.io\/([a-z0-9-]+)/i,
     slug: (match) => decodeURIComponent(match[1]),
@@ -145,10 +168,48 @@ const BODY_PATTERNS: PatternMatcher[] = [
     slug: (match) =>
       `${decodeURIComponent(match[1])}:${decodeURIComponent(match[2])}`,
   },
+  {
+    provider: 'waas',
+    pattern: WAAS_JOB_PATH_PATTERN,
+    slug: (match) => decodeURIComponent(match[1]),
+  },
 ];
+
+function buildWaaSCompanyUrl(slug: string): string {
+  return `https://www.workatastartup.com/companies/${slug}`;
+}
+
+function detectWaaSFromHtml(value: string): DetectResult {
+  const jobPathMatch = value.match(WAAS_JOB_PATH_PATTERN);
+  if (jobPathMatch) {
+    return { provider: 'waas', slug: decodeURIComponent(jobPathMatch[1]) };
+  }
+
+  const jobUrlMatch = value.match(WAAS_JOB_URL_PATTERN);
+  if (jobUrlMatch) {
+    return { provider: 'waas', slug: decodeURIComponent(jobUrlMatch[1]) };
+  }
+
+  const hasSignal = WAAS_SIGNAL_PATTERNS.some((signal) => value.includes(signal));
+  if (!hasSignal) {
+    return { provider: null, slug: null };
+  }
+
+  const slugMatch = value.match(WAAS_SLUG_DATA_PATTERN);
+  if (slugMatch) {
+    return { provider: 'waas', slug: decodeURIComponent(slugMatch[1]) };
+  }
+
+  return { provider: null, slug: null };
+}
 
 function detectFromText(value: string): DetectResult {
   const trimmed = value.trim();
+
+  const waas = detectWaaSFromHtml(trimmed);
+  if (waas.provider) {
+    return waas;
+  }
 
   for (const matcher of URL_PATTERNS) {
     const match = trimmed.match(matcher.pattern);
@@ -209,3 +270,4 @@ export async function detectATS(careersUrl: string | null | undefined): Promise<
 }
 
 export { detectFromText };
+export { buildWaaSCompanyUrl, detectWaaSFromHtml };

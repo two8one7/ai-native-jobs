@@ -8,6 +8,7 @@ export type ATSProvider =
   | 'workable'
   | 'workday'
   | 'notion'
+  | 'waas'
   | 'custom';
 
 export type DetectResult = {

@@ -50,3 +50,23 @@ describe('detectFromText — Notion body patterns', () => {
     expect(result.slug).toBe('anthropic:3b3c91be9aac4d5ca58d2e8e1c0a82c0');
   });
 });
+
+describe('detectFromText — WaaS patterns', () => {
+  test('work at a startup company url resolves to waas provider', () => {
+    const result = detectFromText('https://www.workatastartup.com/companies/corgi-insurance');
+    expect(result).toEqual({
+      provider: 'waas',
+      slug: 'corgi-insurance',
+    });
+  });
+
+  test('relative work at a startup job link in body resolves to waas provider', () => {
+    const result = detectFromText(
+      '<a href="/companies/corgi-insurance/jobs/bJnshAq-full-stack-software-engineer">Apply</a>',
+    );
+    expect(result).toEqual({
+      provider: 'waas',
+      slug: 'corgi-insurance',
+    });
+  });
+});

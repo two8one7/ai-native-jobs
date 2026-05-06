@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS companies (
   logo_url TEXT,
   description TEXT,
   careers_url TEXT,
-  ats_provider TEXT CHECK(ats_provider IN ('greenhouse', 'lever', 'ashby', 'smartrecruiters', 'workable', 'workday', 'notion', 'custom')),
+  ats_provider TEXT CHECK(ats_provider IN ('greenhouse', 'lever', 'ashby', 'smartrecruiters', 'workable', 'workday', 'notion', 'waas', 'custom')),
   careers_probe_at INTEGER,
   careers_probe_result TEXT CHECK(careers_probe_result IN ('found_ats', 'found_custom', 'no_page', 'blocked', 'error')),
   created_at INTEGER NOT NULL

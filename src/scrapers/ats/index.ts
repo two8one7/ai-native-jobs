@@ -10,6 +10,7 @@ import { fetchWorkable } from './workable';
 import { fetchWorkday } from './workday';
 import { fetchNotion } from './notion';
 import { fetchCustom } from './custom';
+import { scrapeWaaS } from './waas';
 import { normalizeRawJob } from './normalize';
 import { upsertListings } from './store';
 import type { ATSProvider, RawJob } from './types';
@@ -22,6 +23,7 @@ const PROVIDER_FETCHERS: Record<ATSProvider, (slug: string) => Promise<RawJob[]>
   workable: fetchWorkable,
   workday: fetchWorkday,
   notion: fetchNotion,
+  waas: async () => [],
   custom: fetchCustom,
 };
 
@@ -61,8 +63,10 @@ export async function scrapeCompanyListings(
     return { slug: company.slug, provider: null, listings: 0 };
   }
 
-  const fetcher = PROVIDER_FETCHERS[detected.provider];
-  const rawJobs = await fetcher(detected.slug);
+  const rawJobs =
+    detected.provider === 'waas'
+      ? await scrapeWaaS(company)
+      : await PROVIDER_FETCHERS[detected.provider](detected.slug);
   const listings = rawJobs.map((rawJob) =>
     normalizeRawJob(rawJob, {
       companyId: company.id,

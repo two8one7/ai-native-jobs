@@ -6,6 +6,7 @@ export type CompanyATSProvider =
   | 'workable'
   | 'workday'
   | 'notion'
+  | 'waas'
   | 'custom';
 
 export type CareersProbeResult = 'found_ats' | 'found_custom' | 'no_page' | 'blocked' | 'error';

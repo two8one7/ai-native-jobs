@@ -1,7 +1,7 @@
 import { parse } from 'node-html-parser';
 import type { CareersProbeResult, Company, CompanyATSProvider } from '../../db/types';
 import { parseCustomHtml } from './custom';
-import { detectFromText } from './detect';
+import { buildWaaSCompanyUrl, detectFromText, detectWaaSFromHtml } from './detect';
 import type { RenderResult, RenderOptions } from './cdp-render';
 
 const USER_AGENT = 'ai-native-jobs-scraper/1.0 (+https://ai-native-jobs.tommyato.com)';
@@ -312,6 +312,18 @@ function findKnownAtsLink(links: LinkCandidate[]): { url: string; provider: Comp
   return null;
 }
 
+function findWaaSCompanyPage(html: string): { url: string; provider: CompanyATSProvider } | null {
+  const detected = detectWaaSFromHtml(html);
+  if (!detected.provider || !detected.slug) {
+    return null;
+  }
+
+  return {
+    url: buildWaaSCompanyUrl(detected.slug),
+    provider: 'waas',
+  };
+}
+
 function findCareerPageLinks(links: LinkCandidate[]): string[] {
   const candidates: string[] = [];
 
@@ -484,6 +496,22 @@ async function runCareersProbe(
   recordHtmlBytes(homepage);
 
   if (homepage.ok && isHtmlContentType(homepage.contentType)) {
+    const homepageWaaS = findWaaSCompanyPage(homepage.body);
+    if (homepageWaaS) {
+      return {
+        outcome: {
+          slug: company.slug,
+          careersUrl: homepageWaaS.url,
+          atsProvider: homepageWaaS.provider,
+          result: 'found_ats',
+          checkedUrls,
+          error: null,
+        },
+        totalHtmlBytes,
+        websiteUrl,
+      };
+    }
+
     const directHomepageAts = detectFromText(homepage.url);
     if (directHomepageAts.provider) {
       return {
@@ -597,6 +625,22 @@ async function runCareersProbe(
           careersUrl: page.url,
           atsProvider: 'custom',
           result: 'found_custom',
+          checkedUrls,
+          error: null,
+        },
+        totalHtmlBytes,
+        websiteUrl,
+      };
+    }
+
+    const pageWaaS = findWaaSCompanyPage(page.body);
+    if (pageWaaS) {
+      return {
+        outcome: {
+          slug: company.slug,
+          careersUrl: pageWaaS.url,
+          atsProvider: pageWaaS.provider,
+          result: 'found_ats',
           checkedUrls,
           error: null,
         },
@@ -774,6 +818,18 @@ function inspectRenderedHtml(
       careersUrl: rendered.finalUrl,
       atsProvider: 'custom',
       result: 'found_custom',
+      checkedUrls,
+      error: null,
+    };
+  }
+
+  const renderedWaaS = findWaaSCompanyPage(rendered.html);
+  if (renderedWaaS) {
+    return {
+      slug: company.slug,
+      careersUrl: renderedWaaS.url,
+      atsProvider: renderedWaaS.provider,
+      result: 'found_ats',
       checkedUrls,
       error: null,
     };
