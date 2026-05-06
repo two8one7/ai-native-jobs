@@ -10,6 +10,7 @@
     "migrate": "bun run src/db/migrate.ts",
     "db:smoke": "bun run src/db/smoke.ts",
     "scrape:yc": "bun run src/bin/scrape-yc.ts",
+    "seed:curated": "bun run src/bin/seed-curated.ts",
     "probe:careers": "bun run src/bin/probe-careers.ts",
     "probe:careers:headless": "bun run src/bin/probe-careers-headless.ts",
     "scrape:ats": "bun run src/bin/scrape-ats.ts",
