@@ -11,6 +11,7 @@
     "db:smoke": "bun run src/db/smoke.ts",
     "scrape:yc": "bun run src/bin/scrape-yc.ts",
     "probe:careers": "bun run src/bin/probe-careers.ts",
+    "probe:careers:headless": "bun run src/bin/probe-careers-headless.ts",
     "scrape:ats": "bun run src/bin/scrape-ats.ts",
     "scrape:ats:all": "bun run src/bin/scrape-ats.ts all",
     "backfill:descriptions": "bun run src/bin/backfill-descriptions.ts",

@@ -2,6 +2,7 @@ import { parse } from 'node-html-parser';
 import type { CareersProbeResult, Company, CompanyATSProvider } from '../../db/types';
 import { parseCustomHtml } from './custom';
 import { detectFromText } from './detect';
+import type { RenderResult, RenderOptions } from './cdp-render';
 
 const USER_AGENT = 'ai-native-jobs-scraper/1.0 (+https://ai-native-jobs.tommyato.com)';
 const USER_AGENT_TOKEN = USER_AGENT.split(/[\/\s]/, 1)[0].toLowerCase();
@@ -387,19 +388,37 @@ async function isAllowedToFetchPath(
   return !policy.disallow.some((rule) => matchesRobotsPattern(rule, path));
 }
 
+type ProbeRunResult = {
+  outcome: CareersProbeOutcome;
+  totalHtmlBytes: number;
+  websiteUrl: URL | null;
+};
+
 export async function probeCompanyCareers(
   company: ProbeableCompany,
   scheduler: HostFetchScheduler,
   robotsCache: Map<string, RobotsPolicy>,
 ): Promise<CareersProbeOutcome> {
+  return (await runCareersProbe(company, scheduler, robotsCache)).outcome;
+}
+
+async function runCareersProbe(
+  company: ProbeableCompany,
+  scheduler: HostFetchScheduler,
+  robotsCache: Map<string, RobotsPolicy>,
+): Promise<ProbeRunResult> {
   if (!company.website) {
     return {
-      slug: company.slug,
-      careersUrl: null,
-      atsProvider: null,
-      result: 'no_page',
-      checkedUrls: [],
-      error: null,
+      outcome: {
+        slug: company.slug,
+        careersUrl: null,
+        atsProvider: null,
+        result: 'no_page',
+        checkedUrls: [],
+        error: null,
+      },
+      totalHtmlBytes: 0,
+      websiteUrl: null,
     };
   }
 
@@ -408,12 +427,16 @@ export async function probeCompanyCareers(
     websiteUrl = normalizeWebsite(company.website);
   } catch (error) {
     return {
-      slug: company.slug,
-      careersUrl: null,
-      atsProvider: null,
-      result: 'error',
-      checkedUrls: [],
-      error: error instanceof Error ? error.message : String(error),
+      outcome: {
+        slug: company.slug,
+        careersUrl: null,
+        atsProvider: null,
+        result: 'error',
+        checkedUrls: [],
+        error: error instanceof Error ? error.message : String(error),
+      },
+      totalHtmlBytes: 0,
+      websiteUrl: null,
     };
   }
 
@@ -422,6 +445,13 @@ export async function probeCompanyCareers(
   const candidateQueue: string[] = [];
   let sawBlocked = false;
   let sawTransportError = false;
+  let totalHtmlBytes = 0;
+
+  const recordHtmlBytes = (page: FetchTextResult) => {
+    if (page.ok && isHtmlContentType(page.contentType)) {
+      totalHtmlBytes += page.body.length;
+    }
+  };
 
   const enqueue = (value: string) => {
     if (!queuedUrls.has(value)) {
@@ -438,25 +468,35 @@ export async function probeCompanyCareers(
     homepage = await scheduler.run(websiteUrl.host, () => fetchText(homepageUrl));
   } catch (error) {
     return {
-      slug: company.slug,
-      careersUrl: null,
-      atsProvider: null,
-      result: 'error',
-      checkedUrls,
-      error: error instanceof Error ? error.message : String(error),
+      outcome: {
+        slug: company.slug,
+        careersUrl: null,
+        atsProvider: null,
+        result: 'error',
+        checkedUrls,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      totalHtmlBytes,
+      websiteUrl,
     };
   }
+
+  recordHtmlBytes(homepage);
 
   if (homepage.ok && isHtmlContentType(homepage.contentType)) {
     const directHomepageAts = detectFromText(homepage.url);
     if (directHomepageAts.provider) {
       return {
-        slug: company.slug,
-        careersUrl: homepage.url,
-        atsProvider: directHomepageAts.provider,
-        result: 'found_ats',
-        checkedUrls,
-        error: null,
+        outcome: {
+          slug: company.slug,
+          careersUrl: homepage.url,
+          atsProvider: directHomepageAts.provider,
+          result: 'found_ats',
+          checkedUrls,
+          error: null,
+        },
+        totalHtmlBytes,
+        websiteUrl,
       };
     }
 
@@ -464,12 +504,16 @@ export async function probeCompanyCareers(
     const atsLink = findKnownAtsLink(homepageLinks);
     if (atsLink) {
       return {
-        slug: company.slug,
-        careersUrl: atsLink.url,
-        atsProvider: atsLink.provider,
-        result: 'found_ats',
-        checkedUrls,
-        error: null,
+        outcome: {
+          slug: company.slug,
+          careersUrl: atsLink.url,
+          atsProvider: atsLink.provider,
+          result: 'found_ats',
+          checkedUrls,
+          error: null,
+        },
+        totalHtmlBytes,
+        websiteUrl,
       };
     }
 
@@ -482,12 +526,16 @@ export async function probeCompanyCareers(
     }
   } else if (homepage.status >= 400 && homepage.status < 600) {
     return {
-      slug: company.slug,
-      careersUrl: null,
-      atsProvider: null,
-      result: 'no_page',
-      checkedUrls,
-      error: null,
+      outcome: {
+        slug: company.slug,
+        careersUrl: null,
+        atsProvider: null,
+        result: 'no_page',
+        checkedUrls,
+        error: null,
+      },
+      totalHtmlBytes,
+      websiteUrl,
     };
   }
 
@@ -513,6 +561,8 @@ export async function probeCompanyCareers(
       continue;
     }
 
+    recordHtmlBytes(page);
+
     if (!page.ok) {
       if (page.status >= 400 && page.status < 600) {
         break;
@@ -523,12 +573,16 @@ export async function probeCompanyCareers(
     const redirectedDetect = detectFromText(page.url);
     if (redirectedDetect.provider) {
       return {
-        slug: company.slug,
-        careersUrl: page.url,
-        atsProvider: redirectedDetect.provider,
-        result: 'found_ats',
-        checkedUrls,
-        error: null,
+        outcome: {
+          slug: company.slug,
+          careersUrl: page.url,
+          atsProvider: redirectedDetect.provider,
+          result: 'found_ats',
+          checkedUrls,
+          error: null,
+        },
+        totalHtmlBytes,
+        websiteUrl,
       };
     }
 
@@ -538,12 +592,16 @@ export async function probeCompanyCareers(
 
     if (isYcJobsPage(page.url)) {
       return {
-        slug: company.slug,
-        careersUrl: page.url,
-        atsProvider: 'custom',
-        result: 'found_custom',
-        checkedUrls,
-        error: null,
+        outcome: {
+          slug: company.slug,
+          careersUrl: page.url,
+          atsProvider: 'custom',
+          result: 'found_custom',
+          checkedUrls,
+          error: null,
+        },
+        totalHtmlBytes,
+        websiteUrl,
       };
     }
 
@@ -551,23 +609,31 @@ export async function probeCompanyCareers(
     const atsLink = findKnownAtsLink(pageLinks);
     if (atsLink) {
       return {
-        slug: company.slug,
-        careersUrl: atsLink.url,
-        atsProvider: atsLink.provider,
-        result: 'found_ats',
-        checkedUrls,
-        error: null,
+        outcome: {
+          slug: company.slug,
+          careersUrl: atsLink.url,
+          atsProvider: atsLink.provider,
+          result: 'found_ats',
+          checkedUrls,
+          error: null,
+        },
+        totalHtmlBytes,
+        websiteUrl,
       };
     }
 
     if (looksLikeCustomCareersPage(page.body, page.url)) {
       return {
-        slug: company.slug,
-        careersUrl: page.url,
-        atsProvider: 'custom',
-        result: 'found_custom',
-        checkedUrls,
-        error: null,
+        outcome: {
+          slug: company.slug,
+          careersUrl: page.url,
+          atsProvider: 'custom',
+          result: 'found_custom',
+          checkedUrls,
+          error: null,
+        },
+        totalHtmlBytes,
+        websiteUrl,
       };
     }
 
@@ -577,13 +643,167 @@ export async function probeCompanyCareers(
   }
 
   return {
-    slug: company.slug,
-    careersUrl: null,
-    atsProvider: null,
-    result: sawBlocked ? 'blocked' : sawTransportError ? 'error' : 'no_page',
-    checkedUrls,
-    error: null,
+    outcome: {
+      slug: company.slug,
+      careersUrl: null,
+      atsProvider: null,
+      result: sawBlocked ? 'blocked' : sawTransportError ? 'error' : 'no_page',
+      checkedUrls,
+      error: null,
+    },
+    totalHtmlBytes,
+    websiteUrl,
   };
+}
+
+const PLAIN_HTML_SKIP_RENDER_BYTES = 30 * 1024;
+
+export type RenderFn = (url: string, opts?: RenderOptions) => Promise<RenderResult | null>;
+
+/**
+ * Probe + render fallback. Runs the existing plain-HTML probe first; if it
+ * returns 'no_page' AND the plain HTML it saw was small (< 30 KB total content
+ * across the homepage and candidate URLs), invokes `render` against a small
+ * candidate set (YC jobs page, website root, /careers) and reruns the same
+ * detect + parseCustom logic against the post-JS HTML.
+ *
+ * The 30 KB skip rule: if plain HTML already returned a substantial body and
+ * still found nothing, the company genuinely has no careers section — don't
+ * waste a headless render.
+ */
+export async function probeCompanyCareersWithRender(
+  company: ProbeableCompany,
+  scheduler: HostFetchScheduler,
+  robotsCache: Map<string, RobotsPolicy>,
+  render: RenderFn,
+): Promise<CareersProbeOutcome> {
+  const { outcome, totalHtmlBytes, websiteUrl } = await runCareersProbe(
+    company,
+    scheduler,
+    robotsCache,
+  );
+
+  if (outcome.result !== 'no_page') {
+    return outcome;
+  }
+
+  if (totalHtmlBytes >= PLAIN_HTML_SKIP_RENDER_BYTES) {
+    return outcome;
+  }
+
+  const candidates = buildRenderCandidates(company, websiteUrl);
+  if (candidates.length === 0) {
+    return outcome;
+  }
+
+  const checkedUrls = [...outcome.checkedUrls];
+
+  for (const candidate of candidates) {
+    let rendered: RenderResult | null;
+    try {
+      rendered = await render(candidate);
+    } catch {
+      rendered = null;
+    }
+
+    if (!rendered) {
+      continue;
+    }
+
+    if (!checkedUrls.includes(rendered.finalUrl)) {
+      checkedUrls.push(rendered.finalUrl);
+    }
+
+    const upgraded = inspectRenderedHtml(company, rendered, checkedUrls);
+    if (upgraded) {
+      return upgraded;
+    }
+  }
+
+  return { ...outcome, checkedUrls };
+}
+
+function buildRenderCandidates(
+  company: ProbeableCompany,
+  websiteUrl: URL | null,
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+
+  const push = (value: string) => {
+    if (!seen.has(value)) {
+      seen.add(value);
+      out.push(value);
+    }
+  };
+
+  push(`${YC_JOBS_BASE_URL}/${company.slug}/jobs`);
+
+  if (websiteUrl) {
+    push(websiteUrl.toString());
+    try {
+      push(new URL('/careers', websiteUrl).toString());
+    } catch {
+      // ignore
+    }
+  }
+
+  return out;
+}
+
+function inspectRenderedHtml(
+  company: ProbeableCompany,
+  rendered: RenderResult,
+  checkedUrls: string[],
+): CareersProbeOutcome | null {
+  const directDetect = detectFromText(rendered.finalUrl);
+  if (directDetect.provider) {
+    return {
+      slug: company.slug,
+      careersUrl: rendered.finalUrl,
+      atsProvider: directDetect.provider,
+      result: 'found_ats',
+      checkedUrls,
+      error: null,
+    };
+  }
+
+  if (isYcJobsPage(rendered.finalUrl)) {
+    return {
+      slug: company.slug,
+      careersUrl: rendered.finalUrl,
+      atsProvider: 'custom',
+      result: 'found_custom',
+      checkedUrls,
+      error: null,
+    };
+  }
+
+  const links = extractLinks(rendered.html, rendered.finalUrl);
+  const atsLink = findKnownAtsLink(links);
+  if (atsLink) {
+    return {
+      slug: company.slug,
+      careersUrl: atsLink.url,
+      atsProvider: atsLink.provider,
+      result: 'found_ats',
+      checkedUrls,
+      error: null,
+    };
+  }
+
+  if (looksLikeCustomCareersPage(rendered.html, rendered.finalUrl)) {
+    return {
+      slug: company.slug,
+      careersUrl: rendered.finalUrl,
+      atsProvider: 'custom',
+      result: 'found_custom',
+      checkedUrls,
+      error: null,
+    };
+  }
+
+  return null;
 }
 
 export function createCareersProbeScheduler(concurrency = 6): HostFetchScheduler {
