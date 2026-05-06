@@ -3,14 +3,14 @@
  *
  * One-shot repair for listings.expires_at rows written in seconds.
  * Usage: bun run src/bin/fix-expires-at-units.ts
- * Override the database file with AI_NATIVE_JOBS_DB; otherwise this targets
- * ./ai-native-jobs.db in the current working directory.
+ * Override the database file with AINATIVE_DB_PATH; otherwise this targets
+ * ./data/ai-native-jobs.db.
  */
 
 import { Database } from 'bun:sqlite';
 import { resolve } from 'node:path';
 
-const DB_PATH = resolve(process.env.AI_NATIVE_JOBS_DB || './ai-native-jobs.db');
+const DB_PATH = resolve(process.env.AINATIVE_DB_PATH ?? './data/ai-native-jobs.db');
 const MIN_UNIX_MS_EPOCH = 10_000_000_000;
 
 const db = new Database(DB_PATH);
