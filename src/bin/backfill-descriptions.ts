@@ -37,12 +37,16 @@ const USER_AGENT =
   'Mozilla/5.0 (compatible; ai-native-jobs-bot/0.1; +https://ai-native-jobs.tommyato.com)';
 const MIN_FILLED_CHARS = 200;
 
-type EmptyListing = {
+export type EmptyListing = {
   id: string;
   title: string;
   apply_url: string;
   company_id: string;
 };
+
+export type FetchImpl = (url: string) => Promise<{ html: string | null; permanentlyDead: boolean; status?: number }>;
+
+export type ProcessOutcome = 'filled' | 'expired' | 'error';
 
 export function expireListing(db: Database, listingId: string, expiredAt = Date.now()): void {
   db.prepare(`UPDATE listings SET expires_at = ? WHERE id = ?`).run(expiredAt, listingId);
@@ -114,6 +118,46 @@ async function fetchHtml(url: string): Promise<{ html: string | null; permanentl
   }
 }
 
+/**
+ * Process a single listing: fetch, extract, and either fill or expire.
+ *
+ * Extracted from the `run()` loop so it can be unit-tested with a fake
+ * `fetchImpl` without spinning up the full script or hitting the network.
+ */
+export async function processRow(
+  db: Database,
+  listing: EmptyListing,
+  fetchImpl: FetchImpl,
+  now: number,
+): Promise<ProcessOutcome> {
+  const { html, permanentlyDead, status } = await fetchImpl(listing.apply_url);
+
+  if (permanentlyDead) {
+    expireListing(db, listing.id, now);
+    console.log(`dead url=${listing.apply_url} status=${status}`);
+    return 'expired';
+  }
+
+  if (!html) {
+    if (status) {
+      console.log(`fetch status=${status} url=${listing.apply_url}`);
+    }
+    return 'error';
+  }
+
+  const raw = extractMainContent(html);
+  const sanitized = sanitizeHtml(raw);
+  const text = stripTags(sanitized).trim();
+
+  if (text.length >= MIN_FILLED_CHARS) {
+    db.prepare(`UPDATE listings SET description_html = ? WHERE id = ?`).run(sanitized, listing.id);
+    return 'filled';
+  }
+
+  expireListing(db, listing.id, now);
+  return 'expired';
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -132,8 +176,6 @@ async function run(): Promise<void> {
     )
     .all(now) as EmptyListing[];
 
-  const fillStmt = db.prepare(`UPDATE listings SET description_html = ? WHERE id = ?`);
-
   let processed = 0;
   let filled = 0;
   let expired = 0;
@@ -145,34 +187,10 @@ async function run(): Promise<void> {
     }
     processed += 1;
 
-    const { html, permanentlyDead, status } = await fetchHtml(listing.apply_url);
-    
-    if (permanentlyDead) {
-      expireListing(db, listing.id, now);
-      expired += 1;
-      console.log(`dead url=${listing.apply_url} status=${status}`);
-      continue;
-    }
-
-    if (!html) {
-      errors += 1;
-      if (status) {
-        console.log(`fetch status=${status} url=${listing.apply_url}`);
-      }
-      continue;
-    }
-
-    const raw = extractMainContent(html);
-    const sanitized = sanitizeHtml(raw);
-    const text = stripTags(sanitized).trim();
-
-    if (text.length >= MIN_FILLED_CHARS) {
-      fillStmt.run(sanitized, listing.id);
-      filled += 1;
-    } else {
-      expireListing(db, listing.id, now);
-      expired += 1;
-    }
+    const outcome = await processRow(db, listing, fetchHtml, now);
+    if (outcome === 'filled') filled += 1;
+    else if (outcome === 'expired') expired += 1;
+    else errors += 1;
   }
 
   db.close();
