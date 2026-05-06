@@ -7,7 +7,7 @@ dist/
 *.sqlite
 *.sqlite-journal
 *.db
-data/
+/data/
 screenshots/
 tsconfig.tsbuildinfo
 .astro/
