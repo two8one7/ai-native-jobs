@@ -27,9 +27,11 @@ Source-only deploy from brain (rsync isn't installed in container — use `tar |
 
     cd /Users/tommyato/Documents/projects/superhq/projects/ai-native-jobs
     git pull
-    tar --exclude=node_modules --exclude=dist --exclude=data --exclude=.git --exclude=.astro --exclude='.env*' -cf - . \
+    tar --exclude=./node_modules --exclude=./dist --exclude=./data --exclude=./.git --exclude=./.astro --exclude='./.env*' -cf - . \
       | ssh -i /Users/tommyato/.config/tommyato/ssh/id_ed25519 root@67.205.167.181 \
         "cd /opt/ai-native-jobs && tar -xf -"
+
+**Anchor every `--exclude` with `./`.** Bare `--exclude=data` matches *any* directory named `data` at any depth — including `src/data/` (curated companies live there). Anchoring at `./` exempts only the top-level local SQLite directory. Lost ~10 minutes 2026-05-06 to this — the deploy looked successful but skipped `src/data/curated-companies.ts`.
     ssh -i /Users/tommyato/.config/tommyato/ssh/id_ed25519 root@67.205.167.181 '
       cd /opt/ai-native-jobs && \
       bun install && \
@@ -55,6 +57,17 @@ After `bun run migrate`, seed YC companies, then run the enrichment before the A
     AINATIVE_DB_PATH=/mnt/data/ai-native-jobs/ai-native-jobs.db bun run scrape:yc
     AINATIVE_DB_PATH=/mnt/data/ai-native-jobs/ai-native-jobs.db bun run probe:careers
     AINATIVE_DB_PATH=/mnt/data/ai-native-jobs/ai-native-jobs.db bun run scrape:ats:all
+
+## Curated non-YC companies (issue #28)
+
+Hand-maintained AI-native companies that aren't in YC live in `src/data/curated-companies.ts` and seed via `bun run seed:curated` (idempotent upsert by slug, never deletes). The scrape timer (`ai-native-jobs-scrape.service`) runs `seed:curated` as `ExecStartPre` before `scrape:ats:all`, so editing the .ts file + redeploying is sufficient — the next 02:00 UTC fire picks up the change. To populate immediately:
+
+    AINATIVE_DB_PATH=/mnt/data/ai-native-jobs/ai-native-jobs.db bun run seed:curated
+    AINATIVE_DB_PATH=/mnt/data/ai-native-jobs/ai-native-jobs.db bun run scrape:ats <slug>
+    PUBLIC_SITE_URL=https://ai-native-jobs.tommyato.com AINATIVE_DB_PATH=... bun --bun ./node_modules/.bin/astro build
+    systemctl restart ai-native-jobs.service
+
+`seedCurated` writes `id='curated-<slug>'` so curated rows never collide with YC rows (which use UUIDs). Slugs MUST be unique across YC + curated — the upsert ON CONFLICT(slug) clause silently merges if they collide. New entries: confirm `careers_url` returns HTTP 200 and the slug is not already in the YC import.
 
 ## Adding a code-side deploy key (deferred)
 
