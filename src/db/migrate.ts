@@ -16,6 +16,14 @@ const COMPANIES_CANONICAL_COLUMNS = new Set([
   'careers_url', 'ats_provider', 'careers_probe_at', 'careers_probe_result', 'created_at',
 ]);
 
+// Canonical column set for the listings table rebuild.
+const LISTINGS_CANONICAL_COLUMNS = new Set([
+  'id', 'company_id', 'title', 'location_city', 'location_country', 'location_is_remote',
+  'location_policy', 'comp_min', 'comp_max', 'comp_currency', 'comp_equity', 'ai_stack',
+  'ai_specialty', 'ai_compute_access', 'description_html', 'apply_url', 'posted_at',
+  'expires_at', 'updated_at', 'status',
+]);
+
 /**
  * Throws if the live table has any column not in `canonicalColumns`. Use before
  * any table-rebuild that re-creates the table with a fixed INSERT-SELECT column
@@ -45,9 +53,18 @@ function companiesTableSupportsWaaS(db: Database): boolean {
   return row?.sql?.includes("'waas'") ?? false;
 }
 
+function listingsFkPointsAtCompaniesOld(db: Database): boolean {
+  const row = db
+    .query("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'listings'")
+    .get() as { sql: string | null } | null;
+
+  return row?.sql?.includes('companies__old') ?? false;
+}
+
 function rebuildCompaniesTableWithWaaSConstraint(db: Database): void {
   assertNoUnknownColumns(db, 'companies', COMPANIES_CANONICAL_COLUMNS);
   db.exec('PRAGMA foreign_keys = OFF;');
+  db.exec('PRAGMA legacy_alter_table = ON;');
 
   try {
     db.exec('BEGIN;');
@@ -85,7 +102,128 @@ function rebuildCompaniesTableWithWaaSConstraint(db: Database): void {
     db.exec('ROLLBACK;');
     throw error;
   } finally {
+    db.exec('PRAGMA legacy_alter_table = OFF;');
     db.exec('PRAGMA foreign_keys = ON;');
+  }
+}
+
+function rebuildListingsForeignKey(db: Database): void {
+  assertNoUnknownColumns(db, 'listings', LISTINGS_CANONICAL_COLUMNS);
+  db.exec('PRAGMA foreign_keys = OFF;');
+  db.exec('PRAGMA legacy_alter_table = ON;');
+
+  try {
+    db.exec('BEGIN;');
+    db.exec('ALTER TABLE listings RENAME TO listings__rebuild;');
+    db.exec(`
+      CREATE TABLE listings (
+        id TEXT PRIMARY KEY,
+        company_id TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        location_city TEXT,
+        location_country TEXT NOT NULL,
+        location_is_remote INTEGER NOT NULL,
+        location_policy TEXT NOT NULL CHECK(location_policy IN ('remote', 'hybrid', 'onsite')),
+        comp_min INTEGER,
+        comp_max INTEGER,
+        comp_currency TEXT,
+        comp_equity INTEGER,
+        ai_stack TEXT NOT NULL DEFAULT '[]',
+        ai_specialty TEXT CHECK(ai_specialty IN ('nlp', 'vision', 'robotics', 'infra', 'ops')),
+        ai_compute_access TEXT,
+        description_html TEXT NOT NULL,
+        apply_url TEXT NOT NULL,
+        posted_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('active', 'expired', 'filled'))
+      );
+    `);
+    db.exec(`
+      INSERT INTO listings (
+        id, company_id, title, location_city, location_country, location_is_remote,
+        location_policy, comp_min, comp_max, comp_currency, comp_equity, ai_stack,
+        ai_specialty, ai_compute_access, description_html, apply_url, posted_at,
+        expires_at, updated_at, status
+      )
+      SELECT
+        id, company_id, title, location_city, location_country, location_is_remote,
+        location_policy, comp_min, comp_max, comp_currency, comp_equity, ai_stack,
+        ai_specialty, ai_compute_access, description_html, apply_url, posted_at,
+        expires_at, updated_at, status
+      FROM listings__rebuild;
+    `);
+    db.exec('DROP TABLE listings__rebuild;');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_listings_status_expires_at ON listings(status, expires_at);');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_listings_company_id ON listings(company_id);');
+
+    const fkErrors = db.query('PRAGMA foreign_key_check;').all() as Array<Record<string, unknown>>;
+    if (fkErrors.length > 0) {
+      throw new Error(`Foreign key check failed: ${JSON.stringify(fkErrors)}`);
+    }
+
+    db.exec('COMMIT;');
+  } catch (error) {
+    db.exec('ROLLBACK;');
+    throw error;
+  } finally {
+    db.exec('PRAGMA legacy_alter_table = OFF;');
+    db.exec('PRAGMA foreign_keys = ON;');
+  }
+}
+
+function findStaleTempTableReferences(db: Database): Array<{ table: string; missingRef: string }> {
+  const liveTables = new Set(
+    (db.query("SELECT name FROM sqlite_master WHERE type = 'table'").all() as Array<{ name: string }>)
+      .map(row => row.name),
+  );
+  const tableRows = db.query(
+    "SELECT name, sql FROM sqlite_master WHERE type = 'table' AND sql IS NOT NULL",
+  ).all() as Array<{ name: string; sql: string }>;
+  const staleRefs = new Map<string, { table: string; missingRef: string }>();
+  const referencePattern = /REFERENCES\s+(?:"([^"]+)"|([A-Za-z_][A-Za-z0-9_]*))/gi;
+
+  for (let i = 0; i < tableRows.length; i += 1) {
+    const row = tableRows[i];
+    referencePattern.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = referencePattern.exec(row.sql)) !== null) {
+      const missingRef = match[1] ?? match[2];
+      if (!missingRef) {
+        continue;
+      }
+
+      if (liveTables.has(missingRef)) {
+        continue;
+      }
+
+      if (
+        !missingRef.includes('__old') &&
+        !missingRef.includes('__rebuild') &&
+        !missingRef.includes('_old') &&
+        !missingRef.includes('_new')
+      ) {
+        continue;
+      }
+
+      const key = `${row.name}::${missingRef}`;
+      if (!staleRefs.has(key)) {
+        staleRefs.set(key, { table: row.name, missingRef });
+      }
+    }
+  }
+
+  return Array.from(staleRefs.values());
+}
+
+function assertNoStaleTempTableReferences(db: Database): void {
+  const staleRefs = findStaleTempTableReferences(db);
+  if (staleRefs.length > 0) {
+    throw new Error(
+      `Stale temp-table references found: ${staleRefs
+        .map(({ table, missingRef }) => `${table} -> ${missingRef}`)
+        .join(', ')}`,
+    );
   }
 }
 
@@ -138,6 +276,12 @@ async function runMigration(absoluteDbPath: string): Promise<string> {
     if (hasAtsProvider && !companiesTableSupportsWaaS(db)) {
       rebuildCompaniesTableWithWaaSConstraint(db);
     }
+
+    if (listingsFkPointsAtCompaniesOld(db)) {
+      rebuildListingsForeignKey(db);
+    }
+
+    assertNoStaleTempTableReferences(db);
   } finally {
     db.close();
   }
