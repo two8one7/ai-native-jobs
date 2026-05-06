@@ -4,6 +4,15 @@ import { stripTags } from './normalize';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const MIN_DESCRIPTION_CHARS = 100;
+const MIN_UNIX_MS_EPOCH = 10_000_000_000;
+
+function assertExpiresAtMs(listing: AIJobListing): void {
+  if (!Number.isFinite(listing.expires_at) || listing.expires_at < MIN_UNIX_MS_EPOCH) {
+    throw new Error(
+      `listing.expires_at must be a unix-ms epoch; got ${listing.expires_at} for listing ${listing.id}`,
+    );
+  }
+}
 
 export function upsertListings(db: Database, listings: AIJobListing[]): number {
   if (listings.length === 0) {
@@ -48,6 +57,7 @@ export function upsertListings(db: Database, listings: AIJobListing[]): number {
         continue;
       }
 
+      assertExpiresAtMs(listing);
       upsertStmt.run(
         listing.id,
         listing.company_id,

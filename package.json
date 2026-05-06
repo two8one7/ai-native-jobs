@@ -15,6 +15,7 @@
     "scrape:ats": "bun run src/bin/scrape-ats.ts",
     "scrape:ats:all": "bun run src/bin/scrape-ats.ts all",
     "backfill:descriptions": "bun run src/bin/backfill-descriptions.ts",
+    "fix:expires-at-units": "bun run src/bin/fix-expires-at-units.ts",
     "typecheck": "astro check"
   },
   "devDependencies": {

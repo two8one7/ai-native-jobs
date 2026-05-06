@@ -43,6 +43,10 @@ type EmptyListing = {
   company_id: string;
 };
 
+export function expireListing(db: Database, listingId: string, expiredAt = Date.now()): void {
+  db.prepare(`UPDATE listings SET expires_at = ? WHERE id = ?`).run(expiredAt, listingId);
+}
+
 /**
  * Extract the main content from an HTML page using a priority heuristic:
  *  1. `<article>` element body
@@ -112,23 +116,19 @@ function sleep(ms: number): Promise<void> {
 
 async function run(): Promise<void> {
   const db = new Database(DB_PATH);
+  const now = Date.now();
 
   const emptyListings = db
-    .query<EmptyListing, []>(
+    .prepare(
       `SELECT id, title, apply_url, company_id
        FROM listings
        WHERE length(description_html) < 50
-         AND expires_at > unixepoch()
+         AND expires_at > ?
          AND status = 'active'`,
     )
-    .all();
+    .all(now) as EmptyListing[];
 
-  const fillStmt = db.prepare(
-    `UPDATE listings SET description_html = ? WHERE id = ?`,
-  );
-  const expireStmt = db.prepare(
-    `UPDATE listings SET expires_at = unixepoch() WHERE id = ?`,
-  );
+  const fillStmt = db.prepare(`UPDATE listings SET description_html = ? WHERE id = ?`);
 
   let processed = 0;
   let filled = 0;
@@ -155,7 +155,7 @@ async function run(): Promise<void> {
       fillStmt.run(sanitized, listing.id);
       filled += 1;
     } else {
-      expireStmt.run(listing.id);
+      expireListing(db, listing.id, now);
       expired += 1;
     }
   }
