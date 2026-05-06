@@ -1,4 +1,5 @@
 import type { ListingAISpecialty } from '../db/types';
+import { getRoleSlug } from './jobs';
 
 const DEFAULT_DB_PATH = './data/ai-native-jobs.db';
 
@@ -209,31 +210,29 @@ export async function getActiveListingsForCompany(companyId: string): Promise<Li
 
 /**
  * Look up a single active listing by company slug + role slug. Role slug shape:
- * `${slugify(title)}-${id.slice(0, 8)}` (see lib/jobs.ts getRoleSlug). The 8-char
- * id prefix is a near-collision-free key once company is also constrained.
+ * `${slugify(title)}-${getIdSuffix(id)}` (see lib/jobs.ts getRoleSlug / getIdSuffix).
+ * For scraped listings, getIdSuffix uses the last colon-separated segment, avoiding
+ * ATS-prefix collisions (e.g. all Greenhouse ids share "greenhou" as first 8 chars).
+ * For paid listings (no colon in id) it falls back to the first 8 chars of the full id.
+ *
+ * Filtering happens in JS rather than SQL: active listings per company are <500 in
+ * practice, so fetching them all and calling getRoleSlug on each row keeps the slug
+ * algorithm as the single source of truth with no SQL/JS drift possible.
  */
 export async function getListingBySlugs(
   companySlug: string,
   roleSlug: string,
 ): Promise<ListingListRow | null> {
-  // Strip the trailing `-<idPrefix>` from the role slug. The prefix is raw
-  // `id.slice(0, 8)` (see lib/jobs.ts getRoleSlug) — for paid listings that's
-  // `lst_xxxx`, for scraped listings it can be `custom:h`, etc. Match exactly
-  // on SUBSTR(id, 1, 8) so SQL LIKE wildcards in the id are not a concern.
-  const dashIdx = roleSlug.lastIndexOf('-');
-  if (dashIdx <= 0 || dashIdx === roleSlug.length - 1) return null;
-  const idPrefix = roleSlug.slice(dashIdx + 1);
-  if (idPrefix.length < 4 || idPrefix.length > 16) return null;
-
   return withDb(async (db) => {
     const { clause, params } = activeListingsWhere();
-    return (db
+    const rows = db
       .prepare(
         `${LISTING_SELECT}
-         WHERE ${clause} AND c.slug = ? AND SUBSTR(l.id, 1, ?) = ?
-         LIMIT 1`,
+         WHERE ${clause} AND c.slug = ?
+         ORDER BY l.posted_at DESC`,
       )
-      .get(...params, companySlug, idPrefix.length, idPrefix) as ListingListRow | null) ?? null;
+      .all(...params, companySlug) as ListingListRow[];
+    return rows.find((r) => getRoleSlug(r) === roleSlug) ?? null;
   });
 }
 

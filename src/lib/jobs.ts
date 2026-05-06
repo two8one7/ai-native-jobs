@@ -12,8 +12,19 @@ export function slugify(value: string): string {
     .replace(/-{2,}/g, '-');
 }
 
+/**
+ * Extract the disambiguator suffix used in role slugs.
+ * Scraped ids: `<ats>:<company>:<external-id>` → first 8 chars of external-id.
+ * Paid ids: `lst_xxxxxxx` (no colon) → first 8 chars of full id.
+ */
+export function getIdSuffix(id: string): string {
+  const lastColon = id.lastIndexOf(':');
+  const tail = lastColon >= 0 ? id.slice(lastColon + 1) : id;
+  return tail.slice(0, 8);
+}
+
 export function getRoleSlug(listing: Pick<ListingListRow, 'id' | 'title'>): string {
-  return `${slugify(listing.title)}-${listing.id.slice(0, 8)}`;
+  return `${slugify(listing.title)}-${getIdSuffix(listing.id)}`;
 }
 
 export function getJobPath(listing: Pick<ListingListRow, 'id' | 'title' | 'company_slug'>): string {
