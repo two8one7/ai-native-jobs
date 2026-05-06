@@ -274,7 +274,8 @@ describe('Notion idempotent upsert', () => {
       providerJobId: 'ab12cd34',
       title: 'Senior ML Engineer',
       location: null,
-      description: '',
+      description:
+        '<p>Join our team to work on state-of-the-art natural language processing systems. Train, evaluate, and deploy large language models at scale in production serving infrastructure.</p>',
       applyUrl: 'https://www.notion.so/ab12cd34ef567890ab12cd34ef567890',
       postedAt: '2025-05-01T00:00:00.000Z',
     };

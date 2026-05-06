@@ -13,6 +13,7 @@
     "probe:careers": "bun run src/bin/probe-careers.ts",
     "scrape:ats": "bun run src/bin/scrape-ats.ts",
     "scrape:ats:all": "bun run src/bin/scrape-ats.ts all",
+    "backfill:descriptions": "bun run src/bin/backfill-descriptions.ts",
     "typecheck": "astro check"
   },
   "devDependencies": {

@@ -45,7 +45,7 @@ function makeSeed(index: number): WorkdaySeed {
     locationsText: 'San Francisco, CA',
     postedOn: index % 2 === 0 ? 'Posted Yesterday' : 'Posted 2 Days Ago',
     jobPostingId,
-    description: `<p>Build Workday-backed inference systems ${index}.</p>`,
+    description: `<p>Build Workday-backed inference systems ${index}. Design distributed inference pipelines, optimize GPU utilization, and maintain sub-100ms p99 latency at scale across our production fleet.</p>`,
   };
 }
 

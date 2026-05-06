@@ -226,4 +226,4 @@ export function normalizeRawJob(rawJob: RawJob, context: NormalizeContext): AIJo
   };
 }
 
-export { parseAISpecialty, parseAIStack, parseCompensation, parseLocation, sanitizeHtml };
+export { parseAISpecialty, parseAIStack, parseCompensation, parseLocation, sanitizeHtml, stripTags };

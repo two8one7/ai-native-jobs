@@ -1,7 +1,9 @@
 import type { Database } from 'bun:sqlite';
 import type { AIJobListing } from './types';
+import { stripTags } from './normalize';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+const MIN_DESCRIPTION_CHARS = 100;
 
 export function upsertListings(db: Database, listings: AIJobListing[]): number {
   if (listings.length === 0) {
@@ -39,6 +41,13 @@ export function upsertListings(db: Database, listings: AIJobListing[]): number {
 
   const transaction = db.transaction((rows: AIJobListing[]) => {
     for (const listing of rows) {
+      if (stripTags(listing.description_html).trim().length < MIN_DESCRIPTION_CHARS) {
+        process.stderr.write(
+          `[skip-empty-body] company=${listing.company_id} title=${listing.title} url=${listing.apply_url}\n`,
+        );
+        continue;
+      }
+
       upsertStmt.run(
         listing.id,
         listing.company_id,

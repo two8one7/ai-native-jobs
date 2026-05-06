@@ -34,7 +34,8 @@ describe('ATS listing upsert', () => {
       providerJobId: '123',
       title: 'Inference Engineer',
       location: 'Remote',
-      description: '<p>Build CUDA inference systems.</p>',
+      description:
+        '<p>Build CUDA inference systems for our production ML platform. Optimize GPU kernels, reduce latency, and scale our serving infrastructure to handle millions of requests per day.</p>',
       applyUrl: 'https://boards.greenhouse.io/openai/jobs/123',
       postedAt: '2026-04-01T00:00:00.000Z',
     };
