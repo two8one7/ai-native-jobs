@@ -2,6 +2,22 @@ import type { DetectResult } from './types';
 
 const WAAS_COMPANY_PATTERN =
   /^(?:https?:\/\/)?(?:www\.)?workatastartup\.com\/companies\/([a-z0-9-]+)(?:[/?#].*)?$/i;
+
+// Careers/jobs/hiring tokens. Any of these in a Notion page slug or body sniff
+// gates the detector to route to the `notion` provider — a Notion page without
+// one of these tokens is almost certainly not a careers page (T&S docs,
+// product guides, company one-pagers, etc.).
+//
+// Word-boundary anchored on either side to avoid matching e.g. "rolex" → "role".
+const NOTION_CAREERS_TOKEN_PATTERN =
+  /(?:^|[^a-z0-9])(careers?|jobs?|hiring|hire|roles?|positions?|openings?|we[-_]?are[-_]?hiring)(?:[^a-z0-9]|$)/i;
+
+// True when the candidate text contains a careers-flavoured token. The check is
+// run against the URL slug and (for body matches) the original input — both
+// give a high-precision signal.
+function hasCareersToken(value: string): boolean {
+  return NOTION_CAREERS_TOKEN_PATTERN.test(value);
+}
 const WAAS_JOB_URL_PATTERN =
   /https?:\/\/(?:www\.)?workatastartup\.com\/companies\/([a-z0-9-]+)\/jobs\/[^"'\\s<]+/i;
 const WAAS_JOB_PATH_PATTERN = /\/companies\/([a-z0-9-]+)\/jobs\/[^"'\\s<]+/i;
@@ -17,7 +33,18 @@ type PatternMatcher = {
   provider: DetectResult['provider'];
   pattern: RegExp;
   slug: (match: RegExpMatchArray) => string;
+  // Optional post-match guard. When present and returns false, the match is
+  // discarded and the next matcher is tried. Used by Notion patterns to demand
+  // a careers/jobs/hiring token before routing — keeps T&S, product guides, and
+  // company one-pagers from polluting the company table.
+  validate?: (slug: string, source: string) => boolean;
 };
+
+// Notion patterns — match anything on notion.so / notion.site, but only route
+// to the `notion` provider when the slug carries a careers/jobs/hiring token.
+function notionGuard(slug: string, source: string): boolean {
+  return hasCareersToken(slug) || hasCareersToken(source);
+}
 
 const URL_PATTERNS: PatternMatcher[] = [
   {
@@ -82,11 +109,17 @@ const URL_PATTERNS: PatternMatcher[] = [
     provider: 'notion',
     pattern: /^(?:https?:\/\/)?[a-z0-9-]+\.notion\.site\/([^/?#]+)(?:[/?#].*)?$/i,
     slug: (match) => decodeURIComponent(match[1]),
+    validate: notionGuard,
   },
   // notion.so workspace pages: https://www.notion.so/<workspace>/<page-id>
   // Page-id segment may have an optional title-slug prefix separated by '-', e.g.
   // "Anthropic-Careers-3b3c91be9aac4d5ca58d2e8e1c0a82c0". The non-capturing group
   // (?:[^/?#]+-) strips the prefix so match[2] is always the bare UUID. Fixes #12.
+  //
+  // Note: no careers-token guard here. notion.so workspace URLs are vetted by
+  // the company-curation step (they only land in careers_url because someone
+  // explicitly set them); the probe false-positives that motivated #33 are all
+  // on *.notion.site subdomain pages.
   {
     provider: 'notion',
     pattern:
@@ -159,8 +192,10 @@ const BODY_PATTERNS: PatternMatcher[] = [
     provider: 'notion',
     pattern: /notion\.site\/([^/?#"'\s<]+)/i,
     slug: (match) => decodeURIComponent(match[1]),
+    validate: notionGuard,
   },
   // notion.so body pattern: workspace + page UUID. Same slug-prefix fix as URL_PATTERNS. Fixes #12.
+  // No careers-token guard here for the same reason as the URL pattern above.
   {
     provider: 'notion',
     pattern:
@@ -213,16 +248,18 @@ function detectFromText(value: string): DetectResult {
 
   for (const matcher of URL_PATTERNS) {
     const match = trimmed.match(matcher.pattern);
-    if (match) {
-      return { provider: matcher.provider, slug: matcher.slug(match) };
-    }
+    if (!match) continue;
+    const slug = matcher.slug(match);
+    if (matcher.validate && !matcher.validate(slug, trimmed)) continue;
+    return { provider: matcher.provider, slug };
   }
 
   for (const matcher of BODY_PATTERNS) {
     const match = trimmed.match(matcher.pattern);
-    if (match) {
-      return { provider: matcher.provider, slug: matcher.slug(match) };
-    }
+    if (!match) continue;
+    const slug = matcher.slug(match);
+    if (matcher.validate && !matcher.validate(slug, trimmed)) continue;
+    return { provider: matcher.provider, slug };
   }
 
   return { provider: null, slug: null };
