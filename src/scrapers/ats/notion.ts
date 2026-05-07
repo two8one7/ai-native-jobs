@@ -67,15 +67,24 @@ type QueryCollectionResponse = { recordMap?: NotionRecordMap };
 // Build the page URL from a slug.
 //
 // Slug formats produced by detect.ts:
-//   "workspace:page-id"  →  https://www.notion.so/workspace/page-id
-//   "<path-with-32hex>"  →  https://www.notion.so/<path>          (notion.site path slug)
-//   "<path>"             →  https://www.notion.so/<path>          (last-resort fallback)
+//   "workspace:page-id"    →  https://www.notion.so/workspace/page-id
+//                              (notion.so workspace URLs; path ends in 32-hex)
+//   "workspace:plain-path" →  https://<workspace>.notion.site/<plain-path>
+//                              (*.notion.site subdomain URLs; path has no 32-hex id)
+//   "<path-with-32hex>"   →  https://www.notion.so/<path>          (legacy bare-path slug)
+//   "<path>"               →  https://www.notion.so/<path>          (last-resort fallback)
 function buildUrl(slug: string): string {
   const colonIdx = slug.indexOf(':');
   if (colonIdx !== -1) {
     const workspace = slug.slice(0, colonIdx);
     const pagePath = slug.slice(colonIdx + 1);
-    return `https://www.notion.so/${workspace}/${pagePath}`;
+    // If pagePath carries a 32-hex page id it's a notion.so workspace URL.
+    // A plain path slug (no 32-hex group) must go back to the *.notion.site
+    // subdomain — notion.so has no route for it and returns 401.
+    if (extractPageIdFromSlug(pagePath) !== null) {
+      return `https://www.notion.so/${workspace}/${pagePath}`;
+    }
+    return `https://${workspace}.notion.site/${pagePath}`;
   }
 
   return `https://www.notion.so/${slug}`;

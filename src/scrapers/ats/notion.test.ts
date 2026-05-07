@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
+import { detectFromText } from './detect';
 import {
+  buildUrl,
   extractJobsFromRecordMap,
   extractPageIdFromHtml,
   extractPageIdFromSlug,
@@ -341,5 +343,43 @@ describe('fetchNotion (mocked) — modern *.notion.site SPA path', () => {
     } finally {
       restore();
     }
+  });
+});
+
+// ─── Issue #34: *.notion.site workspace subdomain detect → buildUrl roundtrip ─
+
+describe('detect → buildUrl roundtrip (issue #34)', () => {
+  // The bug: detect.ts captured only the path, dropping the workspace subdomain.
+  // The stored slug then rebuilt to notion.so/<path> (no workspace, no 32-hex id),
+  // which Notion 401s. Fix: capture workspace too, store as "workspace:path".
+
+  test('detect: truemetrics URL → workspace:path slug', () => {
+    const result = detectFromText('https://truemetrics-io.notion.site/truemetrics-jobs');
+    expect(result.provider).toBe('notion');
+    expect(result.slug).toBe('truemetrics-io:truemetrics-jobs');
+  });
+
+  test('buildUrl: workspace:path slug → *.notion.site URL', () => {
+    expect(buildUrl('truemetrics-io:truemetrics-jobs')).toBe(
+      'https://truemetrics-io.notion.site/truemetrics-jobs',
+    );
+  });
+
+  test('buildUrl: legacy bare path slug with 32-hex → notion.so URL unchanged', () => {
+    expect(buildUrl('Careers-at-Diligent-2176507c3e3a80e2b7c5c95146376232')).toBe(
+      'https://www.notion.so/Careers-at-Diligent-2176507c3e3a80e2b7c5c95146376232',
+    );
+  });
+
+  test('buildUrl: notion.so workspace:uuid slug → notion.so URL unchanged', () => {
+    expect(buildUrl('anthropic:3b3c91be9aac4d5ca58d2e8e1c0a82c0')).toBe(
+      'https://www.notion.so/anthropic/3b3c91be9aac4d5ca58d2e8e1c0a82c0',
+    );
+  });
+
+  test('buildUrl: workspace:path-with-32hex-suffix → notion.so URL (Diligent new-slug form)', () => {
+    expect(buildUrl('diligentai:Careers-at-Diligent-2176507c3e3a80e2b7c5c95146376232')).toBe(
+      'https://www.notion.so/diligentai/Careers-at-Diligent-2176507c3e3a80e2b7c5c95146376232',
+    );
   });
 });

@@ -105,10 +105,12 @@ const URL_PATTERNS: PatternMatcher[] = [
       `${decodeURIComponent(match[1])}:${decodeURIComponent(match[2])}:${decodeURIComponent(match[4])}`,
   },
   // notion.site subdomain pages: https://<workspace>.notion.site/<page-path>
+  // Capture workspace AND path so buildUrl can reconstruct the *.notion.site URL.
+  // Slug form: "<workspace>:<path>" (e.g. "truemetrics-io:truemetrics-jobs").
   {
     provider: 'notion',
-    pattern: /^(?:https?:\/\/)?[a-z0-9-]+\.notion\.site\/([^/?#]+)(?:[/?#].*)?$/i,
-    slug: (match) => decodeURIComponent(match[1]),
+    pattern: /^(?:https?:\/\/)?([a-z0-9-]+)\.notion\.site\/([^/?#]+)(?:[/?#].*)?$/i,
+    slug: (m) => `${m[1]}:${decodeURIComponent(m[2])}`,
     validate: notionGuard,
   },
   // notion.so workspace pages: https://www.notion.so/<workspace>/<page-id>
@@ -187,11 +189,12 @@ const BODY_PATTERNS: PatternMatcher[] = [
     slug: (match) =>
       `${decodeURIComponent(match[1])}:${decodeURIComponent(match[2])}:${decodeURIComponent(match[4])}`,
   },
-  // notion.site body pattern: picks up path after any *.notion.site/
+  // notion.site body pattern: picks up workspace + path after any *.notion.site/
+  // Slug form: "<workspace>:<path>" — mirrors the URL_PATTERNS entry above.
   {
     provider: 'notion',
-    pattern: /notion\.site\/([^/?#"'\s<]+)/i,
-    slug: (match) => decodeURIComponent(match[1]),
+    pattern: /([a-z0-9-]+)\.notion\.site\/([^/?#"'\s<]+)/i,
+    slug: (m) => `${m[1]}:${decodeURIComponent(m[2])}`,
     validate: notionGuard,
   },
   // notion.so body pattern: workspace + page UUID. Same slug-prefix fix as URL_PATTERNS. Fixes #12.

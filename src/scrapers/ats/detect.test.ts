@@ -27,10 +27,10 @@ describe('detectFromText — Notion URL patterns', () => {
     expect(result.slug).toBe('myworkspace:3b3c91be-9aac-4d5c-a58d-2e8e1c0a82c0');
   });
 
-  test('notion.site subdomain page resolves correctly', () => {
+  test('notion.site subdomain page resolves correctly with workspace:path slug', () => {
     const result = detectFromText('https://stripe.notion.site/jobs');
     expect(result.provider).toBe('notion');
-    expect(result.slug).toBe('jobs');
+    expect(result.slug).toBe('stripe:jobs');
   });
 });
 
@@ -61,10 +61,10 @@ describe('detectFromText — Notion careers-token guard (probe false-positive fi
     expect(result.slug).toContain('Careers-at-Diligent');
   });
 
-  test('truemetrics jobs page routes to notion', () => {
+  test('truemetrics jobs page routes to notion with workspace:path slug', () => {
     const result = detectFromText('https://truemetrics-io.notion.site/truemetrics-jobs');
     expect(result.provider).toBe('notion');
-    expect(result.slug).toBe('truemetrics-jobs');
+    expect(result.slug).toBe('truemetrics-io:truemetrics-jobs');
   });
 
   test('GetCrux job board routes to notion', () => {

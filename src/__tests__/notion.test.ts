@@ -29,7 +29,7 @@ describe('Notion detection', () => {
   test('detects notion.site subdomain URL', () => {
     expect(
       detectFromText('https://example-corp.notion.site/Careers-Page-ab12cd34ef567890ab12cd34ef567890'),
-    ).toEqual({ provider: 'notion', slug: 'Careers-Page-ab12cd34ef567890ab12cd34ef567890' });
+    ).toEqual({ provider: 'notion', slug: 'example-corp:Careers-Page-ab12cd34ef567890ab12cd34ef567890' });
   });
 
   test('detects notion.so workspace/page-id URL (32-char hex)', () => {
@@ -49,7 +49,7 @@ describe('Notion detection', () => {
       detectFromText(
         '<a href="https://example-corp.notion.site/Careers-Page-abc123">Careers</a>',
       ),
-    ).toEqual({ provider: 'notion', slug: 'Careers-Page-abc123' });
+    ).toEqual({ provider: 'notion', slug: 'example-corp:Careers-Page-abc123' });
   });
 
   test('detects notion.so workspace link from HTML body', () => {
